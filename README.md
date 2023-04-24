@@ -4,10 +4,17 @@ Implementation of a Sketch-based 3D Modeling and Rigging interface.
 
 ## Build and run
 
+**Build:**
 From the project directory:
 ```
 cmake src -B build
 make -C build
+```
+
+**Run:**
+From the projet directory:
+```
+./src/sketch-based-modeling
 ```
 
 ## Libraries used
