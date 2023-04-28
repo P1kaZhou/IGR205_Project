@@ -1,5 +1,5 @@
-#ifndef _GUM3D_BASE_
-#define _GUM3D_BASE_
+#ifndef _SKETCHY_BASE_
+#define _SKETCHY_BASE_
 
 #include <utils.hpp>
 #include <camera.hpp>

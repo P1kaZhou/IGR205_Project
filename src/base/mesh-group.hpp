@@ -1,5 +1,5 @@
-#ifndef _GUM3D_MESH_GROUP_
-#define _GUM3D_MESH_GROUP_
+#ifndef _SKETCHY_MESH_GROUP_
+#define _SKETCHY_MESH_GROUP_
 
 #include <utils.hpp>
 

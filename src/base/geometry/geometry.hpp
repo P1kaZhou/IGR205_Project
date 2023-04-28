@@ -1,5 +1,5 @@
-#ifndef _GUM3D_GEOMETRY_
-#define _GUM3D_GEOMETRY_
+#ifndef _SKETCHY_GEOMETRY_
+#define _SKETCHY_GEOMETRY_
 
 #include <glm/glm.hpp>
 #include <iostream>

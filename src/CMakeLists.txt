@@ -7,7 +7,7 @@ SET(CMAKE_CXX_STANDARD_REQUIRED True)
 SET(CMAKE_BUILD_TYPE "debug")
 add_definitions(-D_MY_OPENGL_IS_33_)
 
-project(sketch-based-modeling)
+project(sketchy)
 
 add_executable(${PROJECT_NAME} main.cpp)
 

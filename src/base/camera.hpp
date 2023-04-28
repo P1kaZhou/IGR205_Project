@@ -1,5 +1,5 @@
-#ifndef _GUM3D_CAMERA_
-#define _GUM3D_CAMERA_
+#ifndef _SKETCHY_CAMERA_
+#define _SKETCHY_CAMERA_
 
 #include <utils.hpp>
 

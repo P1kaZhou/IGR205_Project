@@ -1,5 +1,5 @@
-#ifndef _GUM3D_MESH_PROGRAM_
-#define _GUM3D_MESH_PROGRAM_
+#ifndef _SKETCHY_MESH_PROGRAM_
+#define _SKETCHY_MESH_PROGRAM_
 
 #include <utils.hpp>
 

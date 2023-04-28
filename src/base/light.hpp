@@ -1,5 +1,5 @@
-#ifndef _GUM3D_LIGHT_
-#define _GUM3D_LIGHT_
+#ifndef _SKETCHY_LIGHT_
+#define _SKETCHY_LIGHT_
 
 #include <utils.hpp>
 #include <program.hpp>

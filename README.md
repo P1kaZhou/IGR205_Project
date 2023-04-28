@@ -14,7 +14,7 @@ make -C build
 **Run:**
 From the projet directory:
 ```
-./src/sketch-based-modeling
+./src/sketchy
 ```
 
 ## Libraries used

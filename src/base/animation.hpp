@@ -1,5 +1,5 @@
-#ifndef _GUM3D_ANIMATION_
-#define _GUM3D_ANIMATION_
+#ifndef _SKETCHY_ANIMATION_
+#define _SKETCHY_ANIMATION_
 
 #include <utils.hpp>
 #include <mesh-group.hpp>

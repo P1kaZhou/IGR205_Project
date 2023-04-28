@@ -1,5 +1,5 @@
-#ifndef _GUM3D_FRAME_BUFFER_
-#define _GUM3D_FRAME_BUFFER_
+#ifndef _SKETCHY_FRAME_BUFFER_
+#define _SKETCHY_FRAME_BUFFER_
 
 #include <utils.hpp>
 

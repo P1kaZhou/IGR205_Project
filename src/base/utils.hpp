@@ -1,5 +1,5 @@
-#ifndef _GUM3D_UTILS_
-#define _GUM3D_UTILS_
+#ifndef _SKETCHY_UTILS_
+#define _SKETCHY_UTILS_
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>

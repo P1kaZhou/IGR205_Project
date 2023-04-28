@@ -1,5 +1,5 @@
-#ifndef _GUM3D_TEXTURE_
-#define _GUM3D_TEXTURE_
+#ifndef _SKETCHY_TEXTURE_
+#define _SKETCHY_TEXTURE_
 
 #include <utils.hpp>
 

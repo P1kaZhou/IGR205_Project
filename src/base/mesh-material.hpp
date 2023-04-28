@@ -1,5 +1,5 @@
-#ifndef _GUM3D_MESH_MATERIAL_
-#define _GUM3D_MESH_MATERIAL_
+#ifndef _SKETCHY_MESH_MATERIAL_
+#define _SKETCHY_MESH_MATERIAL_
 
 #include <utils.hpp>
 #include <texture.hpp>

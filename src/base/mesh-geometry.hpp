@@ -1,5 +1,5 @@
-#ifndef _GUM3D_MESH_GEOMETRY_
-#define _GUM3D_MESH_GEOMETRY_
+#ifndef _SKETCHY_MESH_GEOMETRY_
+#define _SKETCHY_MESH_GEOMETRY_
 
 #include <utils.hpp>
 #include <geometry/geometry.hpp>
