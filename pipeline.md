@@ -6,6 +6,14 @@ At each stroke, from the 2D Sketch of a shape
 3. Generate the skeleton
 4. Skin weights computation
 
+Operations
+1. Cutting
+2. Merging
+3. Skeleton refinement
+
+
+### At each stroke
+
 #### 1. shape to cylinders - Chordal axis transform (CAT)
 
 Getting the cylinders junction triangles and the chordal axis:
@@ -44,3 +52,16 @@ The entire mesh is then smoothed with **Least-squares Meshes** :
 
 **For the cylindrical regions:**
 We down sample the chordal axis into **joints** and **bones**. To do so we use a modified version of the Douglas-Peucker algorithm : The Cylindrical Douglas-Peucker algorithm.
+
+**For connecting regions:**
+
+#### 4. Skin weights computation
+
+
+### Operations
+
+#### 1. Cutting
+
+#### 2. Merging
+
+#### 3. Skeleton refinement
