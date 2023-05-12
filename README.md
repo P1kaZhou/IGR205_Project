@@ -22,6 +22,7 @@ From the projet directory:
 * **GLM**
 * **GLFW**
 * **STBImage** for png and jpeg image reading and writing.
+* **Dear ImGUI** for GUI
 
 ## Resources
 

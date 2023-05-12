@@ -25,6 +25,9 @@ target_link_libraries(${PROJECT_NAME} glm)
 
 target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
 
+target_include_directories(${PROJECT_NAME} PRIVATE dep/imgui)
+target_include_directories(${PROJECT_NAME} PRIVATE dep/imgui/backends)
+
 target_sources(
   ${PROJECT_NAME} PRIVATE
   base/base.cpp
@@ -39,6 +42,13 @@ target_sources(
   base/frame-buffer.cpp
 
   base/geometry/geometry.cpp
+
+  dep/imgui/imgui.cpp
+  dep/imgui/imgui_draw.cpp
+  dep/imgui/imgui_tables.cpp
+  dep/imgui/imgui_widgets.cpp
+  dep/imgui/backends/imgui_impl_glfw.cpp
+  dep/imgui/backends/imgui_impl_opengl3.cpp
   )
 target_include_directories(
   ${PROJECT_NAME} PRIVATE
