@@ -2,6 +2,9 @@
 #include <base.hpp>
 #include <mesh.hpp>
 #include <animation.hpp>
+#include <camera-controller.hpp>
+
+#include <drawing.hpp>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -9,6 +12,8 @@
 
 Renderer * renderer = nullptr;
 Mesh * selectedMesh = nullptr;
+CameraController * camController;
+Drawing * drawing;
 
 void errorCallback(int error, const char *desc) {
   std::cout <<  "Error " << error << ": " << desc << std::endl;
@@ -23,21 +28,29 @@ void windowSizeCallback(GLFWwindow* window, int width, int height) {
 void cursor_position_callback(GLFWwindow* window, double xPos, double yPos) {
   int width, height;
   glfwGetWindowSize(window, &width, &height);
-  renderer->getCamera().mouseSetMousePos(xPos, yPos);
+  camController->mouseSetMousePos(xPos, yPos);
   xPos = (xPos - width/2);
   yPos = -(yPos - height/2);
-  renderer->getCamera().mouseSetScreenPos(xPos, yPos);
+  camController->mouseSetScreenPos(xPos, yPos);
+
+  drawing->update(xPos/(width/2), yPos/(height/2));
 }
 void cursor_enter_callback(GLFWwindow* window, int entered)
 {
   if(entered) {
-    renderer->getCamera().enableLook(true);
-    renderer->getCamera().enableMove(true);
+    camController->enableLook(true);
+    camController->enableMove(true);
   }
   else {
-    renderer->getCamera().enableLook(false);
-    renderer->getCamera().enableMove(false);
+    camController->enableLook(false);
+    camController->enableMove(false);
+    
+    drawing->stop();
   }
+}
+
+void mouse_scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+  camController->onZoom(yoffset);
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -47,7 +60,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     glm::vec3 rayStartPos;
     int width, height;
     glfwGetWindowSize(window, &width, &height);
-    renderer->getCamera().mouseMakeWorldRay(rayDirection, rayStartPos, width, height);
+    camController->mouseMakeWorldRay(rayDirection, rayStartPos, width, height);
 
     // Mesh * m = new Mesh(
     //   MeshGeometry::meshGetSphereData(0.01f, 10, 10, nullptr),
@@ -79,6 +92,20 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
       }
     }
   }
+
+  else if(button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_PRESS) {
+    camController->setRotate(true);
+  }
+  else if(button == GLFW_MOUSE_BUTTON_MIDDLE && action == GLFW_RELEASE) {
+    camController->setRotate(false);
+  }
+
+  if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+    drawing->continu();
+  }
+  else if(button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+    drawing->stop();
+  }
 }
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -95,61 +122,61 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
       selectedMesh->translateMesh({0.0f, 0.1f, 0.0f});
     }
     else
-      renderer->getCamera().setMoveFront(true);
+      camController->setMoveFront(true);
   }
   else if(action == GLFW_PRESS && key == GLFW_KEY_K) {
     if(selectedMesh) {
       selectedMesh->translateMesh({0.0f, -0.1f, 0.0f});
     }
     else
-      renderer->getCamera().setMoveBack(true);
+      camController->setMoveBack(true);
   }
   else if(action == GLFW_PRESS && key == GLFW_KEY_L) {
     if(selectedMesh) {
       selectedMesh->translateMesh({0.1f, 0.0f, 0.0f});
     }
     else
-      renderer->getCamera().setMoveRight(true);
+      camController->setMoveRight(true);
   }
   else if(action == GLFW_PRESS && key == GLFW_KEY_J) {
     if(selectedMesh) {
       selectedMesh->translateMesh({-0.1f, 0.0f, 0.0f});
     }
     else
-      renderer->getCamera().setMoveLeft(true);
+      camController->setMoveLeft(true);
   }
   else if(action == GLFW_PRESS && key == GLFW_KEY_Y) {
     if(selectedMesh) {
       selectedMesh->translateMesh({0.0f, 0.0f, 0.1f});
     }
     else
-      renderer->getCamera().setMoveUp(true);
+      camController->setMoveUp(true);
   }
   else if(action == GLFW_PRESS && key == GLFW_KEY_H) {
     if(selectedMesh) {
       selectedMesh->translateMesh({0.0f, 0.0f, -0.1f});
     }
     else
-      renderer->getCamera().setMoveDown(true);
+      camController->setMoveDown(true);
   }
 
   else if(action == GLFW_RELEASE && key == GLFW_KEY_I) {
-    renderer->getCamera().setMoveFront(false);
+    camController->setMoveFront(false);
   }
   else if(action == GLFW_RELEASE && key == GLFW_KEY_K) {
-    renderer->getCamera().setMoveBack(false);
+    camController->setMoveBack(false);
   }
   else if(action == GLFW_RELEASE && key == GLFW_KEY_L) {
-    renderer->getCamera().setMoveRight(false);
+    camController->setMoveRight(false);
   }
   else if(action == GLFW_RELEASE && key == GLFW_KEY_J) {
-    renderer->getCamera().setMoveLeft(false);
+    camController->setMoveLeft(false);
   }
   else if(action == GLFW_RELEASE && key == GLFW_KEY_Y) {
-    renderer->getCamera().setMoveUp(false);
+    camController->setMoveUp(false);
   }
   else if(action == GLFW_RELEASE && key == GLFW_KEY_H) {
-    renderer->getCamera().setMoveDown(false);
+    camController->setMoveDown(false);
   }
 
   else if(action == GLFW_RELEASE && key == GLFW_KEY_N) {
@@ -157,6 +184,20 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods
       selectedMesh->setHighLight(false);
       selectedMesh = nullptr;
     }
+  }
+
+  else if(action == GLFW_PRESS && key == GLFW_KEY_LEFT_ALT) {
+    camController->setSlide(true);
+  }
+  else if(action == GLFW_RELEASE && key == GLFW_KEY_LEFT_ALT) {
+    camController->setSlide(false);
+  }
+
+  else if(action == GLFW_PRESS && key == GLFW_KEY_LEFT_CONTROL) {
+    camController->setRotate(true);
+  }
+  else if(action == GLFW_RELEASE && key == GLFW_KEY_LEFT_CONTROL) {
+    camController->setRotate(false);
   }
 
 }
@@ -383,17 +424,7 @@ void animateAnimations() {
   animation3->animate(time);
 }
 
-int main(int argc, char ** argv) {
-
-  renderer = new Renderer();
-  renderer->initGLFW(1024, 768,
-    windowSizeCallback, keyCallback, errorCallback,
-    cursor_position_callback, cursor_enter_callback, mouse_button_callback);
-  renderer->initOpenGL();
-  renderer->initCamera();
-  glm::vec3 cameraPos = {0.0f, 0.0f, -5.0};
-  renderer->getCamera().setPosition(cameraPos);
-
+void initImGui() {
   const char* glsl_version = "#version 420";
 
   // Setup Dear ImGui context
@@ -422,12 +453,89 @@ int main(int argc, char ** argv) {
   // Setup Platform/Renderer backends
   ImGui_ImplGlfw_InitForOpenGL(renderer->getWindow(), true);
   ImGui_ImplOpenGL3_Init(glsl_version);
+}
 
-  // Our state
-  bool show_demo_window = true;
-  bool show_another_window = false;
-  ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+// Our state
+bool show_demo_window = true;
+bool show_another_window = false;
+ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+ControllerMode controllerMode = ControllerMode::FPS;
+
+bool drawing_render_3d = false;
+
+void renderImGui() {
+  ImGuiIO& io = ImGui::GetIO(); (void)io;
+  
+  // Start the Dear ImGui frame
+  ImGui_ImplOpenGL3_NewFrame();
+  ImGui_ImplGlfw_NewFrame();
+  ImGui::NewFrame();
+
+  {
+    static float f = 0.0f;
+    static int counter = 0;
+
+    ImGui::Begin("Sketchy !");
+
+    // ImGui::Text("This is some useful text.");
+    // ImGui::Checkbox("Demo Window", &show_demo_window);
+    // ImGui::Checkbox("Another Window", &show_another_window);
+
+    // ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+    // ImGui::ColorEdit3("clear color", (float*)&clear_color);
+
+    // if (ImGui::Button("Button"))
+    //     counter++;
+    // ImGui::SameLine();
+    // ImGui::Text("counter = %d", counter);
+
+    // ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+
+    if (ImGui::RadioButton("FIXED", controllerMode == NONE)) { controllerMode = NONE; } ImGui::SameLine();
+    if (ImGui::RadioButton("FPS", controllerMode == FPS)) { controllerMode = FPS; } ImGui::SameLine();
+    if (ImGui::RadioButton("CAM", controllerMode == CAM)) { controllerMode = CAM; }
+
+    ImGui::Checkbox("3D drawing", &drawing_render_3d);
+
+    // if (controllerMode == FPS) { ImGui::Text("FPS"); }
+    // if (controllerMode == CAM) { ImGui::Text("CAM"); }
+
+    ImGui::End();
+  }
+
+  ImGui::Render();
+  ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+  if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+  {
+    GLFWwindow* backup_current_context = glfwGetCurrentContext();
+    ImGui::UpdatePlatformWindows();
+    ImGui::RenderPlatformWindowsDefault();
+    glfwMakeContextCurrent(backup_current_context);
+  }
+}
+
+void interactImGui() {
+  camController->setControllerMode(controllerMode);
+}
+
+int main(int argc, char ** argv) {
+
+  renderer = new Renderer();
+  renderer->initGLFW(1024, 768,
+    windowSizeCallback, keyCallback, errorCallback,
+    cursor_position_callback, cursor_enter_callback, mouse_button_callback, mouse_scroll_callback);
+  renderer->initOpenGL();
+  renderer->initCamera();
+  glm::vec3 cameraPos = {0.0f, 0.0f, -5.0};
+  renderer->getCamera().setPosition(cameraPos);
+
+  camController = new CameraController(renderer->getCamera());
+
+  drawing = new Drawing();
+
+  initImGui();
 
   createTest();
   initAnimations();
@@ -435,50 +543,25 @@ int main(int argc, char ** argv) {
   long delta = 0;
   while(!glfwWindowShouldClose(renderer->getWindow())) {
     glfwSwapBuffers(renderer->getWindow());
+
     delta = renderer->updateDeltaTime();
-
     animateAnimations();
-
     renderer->render();
 
-    // Start the Dear ImGui frame
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
+    renderImGui();
+    interactImGui();
+    camController->update(delta);
 
-    {
-      static float f = 0.0f;
-      static int counter = 0;
-
-      ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
-
-      ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
-      ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-      ImGui::Checkbox("Another Window", &show_another_window);
-
-      ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-      ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
-      if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
-          counter++;
-      ImGui::SameLine();
-      ImGui::Text("counter = %d", counter);
-
-      ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-      ImGui::End();
+    if(drawing_render_3d) {
+      drawing->render3D(
+        renderer->getCamera().computeProjectionMatrix(),
+        renderer->getCamera().computeViewMatrix()
+      );
     }
-
-    ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
-    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
-    {
-      GLFWwindow* backup_current_context = glfwGetCurrentContext();
-      ImGui::UpdatePlatformWindows();
-      ImGui::RenderPlatformWindowsDefault();
-      glfwMakeContextCurrent(backup_current_context);
+    else {
+      drawing->render2D();
     }
-
+    
     glfwPollEvents();
   }
 

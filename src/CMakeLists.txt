@@ -33,6 +33,7 @@ target_sources(
   base/base.cpp
   base/mesh.cpp
   base/camera.cpp
+  base/camera-controller.cpp
   base/light.cpp
   base/mesh-geometry.cpp
   base/mesh-material.cpp

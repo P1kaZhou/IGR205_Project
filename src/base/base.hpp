@@ -13,6 +13,7 @@ typedef void (*ErrorCallback)(int error, const char *desc);
 typedef void (*CursorPositionCallback)(GLFWwindow* window, double xpos, double ypos);
 typedef void (*CursorEnterCallback)(GLFWwindow* window, int entered);
 typedef void (*MouseButtonCallback)(GLFWwindow* window, int button, int action, int mods);
+typedef void (*MouseScrollCallback)(GLFWwindow* window, double xoffset, double yoffset);
 
 class Renderer;
 
@@ -104,7 +105,8 @@ public:
     ErrorCallback errorCallback,
     CursorPositionCallback cursorPositionCallback,
     CursorEnterCallback cursorEnterCallback,
-    MouseButtonCallback mouseButtonCallback
+    MouseButtonCallback mouseButtonCallback,
+    MouseScrollCallback mouseScrollCallback
   );
   void initOpenGL();
   void initCamera();

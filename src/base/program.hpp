@@ -15,6 +15,8 @@ protected:
     static Program * instancePhong;
     static Program * instanceShadowMap;
     static Program * instanceSingleColor;
+    static Program * instanceDrawing;
+    static Program * instanceDrawingWorld;
 
     GLuint program;
     unsigned int programUserCount;
@@ -30,6 +32,8 @@ public:
     static Program * getInstancePhong();
     static Program * getInstanceShadowMap();
     static Program * getInstanceSingleColor();
+    static Program * getInstanceDrawing();
+    static Program * getInstanceDrawingWorld();
     
     /*Subscribe to the program. This compile the program if it was previously delete from the GPU.*/
     void subscribe();

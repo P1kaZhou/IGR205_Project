@@ -12,7 +12,8 @@ void Renderer::initGLFW(
   ErrorCallback errorCallback,
   CursorPositionCallback cursorPositionCallback,
   CursorEnterCallback cursorEnterCallback,
-  MouseButtonCallback mouseButtonCallback
+  MouseButtonCallback mouseButtonCallback,
+  MouseScrollCallback mouseScrollCallback
 ) {
   glfwSetErrorCallback(errorCallback);
 
@@ -49,6 +50,7 @@ void Renderer::initGLFW(
   glfwSetKeyCallback(g_window, keyCallback);
   glfwSetCursorEnterCallback(g_window, cursorEnterCallback);
   glfwSetMouseButtonCallback(g_window, mouseButtonCallback);
+  glfwSetScrollCallback(g_window, mouseScrollCallback);
 }
 
 void Renderer::initOpenGL() {
@@ -98,7 +100,6 @@ void Renderer::render() {
   GLuint shadowProgram = Program::getInstanceShadowMap()->getProgram();
   GLuint phongProgram = Program::getInstancePhong()->getProgram();
 
-  g_camera.update(delta);
   glViewport(0, 0, width, height);
   glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);

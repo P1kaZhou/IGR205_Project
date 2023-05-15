@@ -9,9 +9,17 @@
 #define SHADER_FILENAME_SINGLE_COLOR_VERTEX "src/shaders/singleColorVertexShader.glsl"
 #define SHADER_FILENAME_SINGLE_COLOR_FRAGMENT "src/shaders/singleColorFragmentShader.glsl"
 
+#define SHADER_FILENAME_DRAWING_VERTEX "src/shaders/drawingVertexShader.glsl"
+#define SHADER_FILENAME_DRAWING_FRAGMENT "src/shaders/drawingFragmentShader.glsl"
+
+#define SHADER_FILENAME_DRAWING_WORLD_VERTEX "src/shaders/drawingWorldVertexShader.glsl"
+#define SHADER_FILENAME_DRAWING_WORLD_FRAGMENT "src/shaders/drawingWorldFragmentShader.glsl"
+
 Program * Program::instancePhong = nullptr;
 Program * Program::instanceShadowMap = nullptr;
 Program * Program::instanceSingleColor = nullptr;
+Program * Program::instanceDrawing = nullptr;
+Program * Program::instanceDrawingWorld = nullptr;
 
 Program * Program::getInstancePhong() {
     if(instancePhong  == nullptr) {
@@ -41,6 +49,26 @@ Program * Program::getInstanceSingleColor() {
         instanceSingleColor->initProgram();
     }
     return instanceSingleColor;
+}
+
+Program * Program::getInstanceDrawing() {
+    if(instanceDrawing  == nullptr) {
+        instanceDrawing = new Program();
+        instanceDrawing->vertexShaderFilename = SHADER_FILENAME_DRAWING_VERTEX;
+        instanceDrawing->fragmentShaderFilename = SHADER_FILENAME_DRAWING_FRAGMENT;
+        instanceDrawing->initProgram();
+    }
+    return instanceDrawing;
+}
+
+Program * Program::getInstanceDrawingWorld() {
+    if(instanceDrawingWorld  == nullptr) {
+        instanceDrawingWorld = new Program();
+        instanceDrawingWorld->vertexShaderFilename = SHADER_FILENAME_DRAWING_WORLD_VERTEX;
+        instanceDrawingWorld->fragmentShaderFilename = SHADER_FILENAME_DRAWING_WORLD_FRAGMENT;
+        instanceDrawingWorld->initProgram();
+    }
+    return instanceDrawingWorld;
 }
 
 void Program::subscribe() {
