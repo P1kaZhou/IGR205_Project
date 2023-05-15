@@ -10,6 +10,9 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
+#include <modeling/delaunay.hpp>
+#include <geometry/draw-2d.hpp>
+
 Renderer * renderer = nullptr;
 Mesh * selectedMesh = nullptr;
 CameraController * camController;
@@ -539,6 +542,35 @@ int main(int argc, char ** argv) {
 
   createTest();
   initAnimations();
+
+  {
+    std::vector<glm::vec2> points;
+    points.push_back({1, 1});
+    points.push_back({1, 0});
+    points.push_back({0, 0});
+    points.push_back({0, 1});
+    points.push_back({0.5, 0.5});
+    ConstrainedDelaunayTriangulation2D d(points);
+    auto triangles = d.getTriangles();
+    auto edges = d.getEdges();
+    std::vector<glm::vec3> pointColors255;
+    std::vector<glm::vec3> triangleColors255;
+    std::vector<glm::vec3> edgeColors255;
+    for(auto p : points) {
+      pointColors255.push_back({150, 5, 5});
+    }
+    for(auto t : triangles) {
+      triangleColors255.push_back({5, 5, 150});
+    }
+    for(auto e : edges) {
+      edgeColors255.push_back({5, 150, 5});
+    }
+    Geometry::saveImagePPM("delaunay.ppm", 100, 100, {
+      points, pointColors255,
+      triangles, triangleColors255,
+      edges, edgeColors255
+    });
+  }
   
   long delta = 0;
   while(!glfwWindowShouldClose(renderer->getWindow())) {

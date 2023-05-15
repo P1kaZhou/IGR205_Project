@@ -8,25 +8,40 @@ SET(CMAKE_BUILD_TYPE "debug")
 add_definitions(-D_MY_OPENGL_IS_33_)
 
 project(sketchy)
-
 add_executable(${PROJECT_NAME} main.cpp)
 
+# CGAL
+# find_package(CGAL QUIET COMPONENTS Core )
+# include( ${CGAL_USE_FILE} )
+# include_directories(${CGAL_INCLUDE_DIR})
+# target_link_libraries(${PROJECT_NAME} ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES})
+
+# GLAD
 target_sources(${PROJECT_NAME} PRIVATE dep/glad/src/glad.c)
 target_include_directories(${PROJECT_NAME} PRIVATE dep/glad/include/)
 
+# GLFW
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 add_subdirectory(dep/glfw)
-target_link_libraries(${PROJECT_NAME} glfw)
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 
+# CDT
+add_subdirectory(dep/CDT CDT)
+target_link_libraries(${PROJECT_NAME} PRIVATE CDT)
+
+# GLM
 add_subdirectory(dep/glm)
-target_link_libraries(${PROJECT_NAME} glm)
+target_link_libraries(${PROJECT_NAME} PRIVATE glm)
 
-target_link_libraries(${PROJECT_NAME} ${CMAKE_DL_LIBS})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_DL_LIBS})
 
+# IMGUI
 target_include_directories(${PROJECT_NAME} PRIVATE dep/imgui)
 target_include_directories(${PROJECT_NAME} PRIVATE dep/imgui/backends)
+
+
 
 target_sources(
   ${PROJECT_NAME} PRIVATE

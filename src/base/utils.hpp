@@ -136,7 +136,7 @@ inline void writePPMImage(const std::string & filename, const int width, const i
 #define COLOR_PINK glm::vec3(1.0, 0.0, 1.0)
 
 /*Function to write STL file.*/
-void writeSTL(
+inline void writeSTL(
     std::string filename,
     const std::vector<glm::ivec3> & faces,
     const std::vector<glm::vec3> & vertices
