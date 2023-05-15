@@ -70,6 +70,28 @@ each vertex is computed by solving a linear system of equations.
 
 #### 1. Cutting
 
+The action of cutting splits the mesh in two. This entails that the skeleton is also split in two.
+The smoothness of the boundary will depend on the smoothness of the cut.
+
+Thus, weights corresponding to bones no longer in a shape are removed since there are now two independent skeletal structures.
+
 #### 2. Merging
+
+Merging can be separated into three types:
+- Snapping
+- Splitting
+- Connecting
+
+The process is started by dragging one shape close to another. The three different types can be discribed as it follows:
+
+Snapping means that the entire dragged shape translates so that the
+two joints indicated by the user become coincident, and then the skeletons are joined
+
+Splitting means that a new joint is inserted at the indicated location on the second shape’s
+bone and then snapping is performed with this joint
+
+Connecting means that a new bone (highlighted in red) is inserted to connect the two skeletons at the joints indicated by the user
+
+The bones that aren't influencal for any vertex on the merged surface are pruned, and skin weights are updated.
 
 #### 3. Skeleton refinement
