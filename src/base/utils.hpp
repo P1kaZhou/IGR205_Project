@@ -135,4 +135,37 @@ inline void writePPMImage(const std::string & filename, const int width, const i
 #define COLOR_GRAY glm::vec3(0.5, 0.5, 0.5)
 #define COLOR_PINK glm::vec3(1.0, 0.0, 1.0)
 
+/*Function to write STL file.*/
+void writeSTL(
+    std::string filename,
+    const std::vector<glm::ivec3> & faces,
+    const std::vector<glm::vec3> & vertices
+) {
+    std::ofstream out(filename);
+
+    out << "solid name" << std::endl;
+    for(unsigned i=0;i<faces.size(); i++) {
+      out << "facet normal " << 0 << " " << 0 << " " << 0 << std::endl;
+      out << "\touter loop" << std::endl;
+      out << "\t\tvertex " <<
+        vertices[faces[i].x].x << " " <<
+        vertices[faces[i].x].y << " " <<
+        vertices[faces[i].x].z << 
+        std::endl;
+      out << "\t\tvertex " <<
+        vertices[faces[i].y].x << " " <<
+        vertices[faces[i].y].y << " " <<
+        vertices[faces[i].y].z <<
+        std::endl;
+      out << "\t\tvertex " <<
+        vertices[faces[i].z].x << " " <<
+        vertices[faces[i].z].y << " " <<
+        vertices[faces[i].z].z <<
+        std::endl;
+      out << "\tendloop" << std::endl;
+      out << "endfacet" << std::endl;
+    }
+    out << "endsolid name" << std::endl;
+}
+
 #endif
