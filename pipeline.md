@@ -54,8 +54,16 @@ The entire mesh is then smoothed with **Least-squares Meshes** :
 We down sample the chordal axis into **joints** and **bones**. To do so we use a modified version of the Douglas-Peucker algorithm : The Cylindrical Douglas-Peucker algorithm.
 
 **For connecting regions:**
+>A joint is placed at the center of each junction triangle and a bone is added across each of its three sides
+> 
+>If a side is adjacent to a cylindrical region, the bone is connected to the end of its skeleton; otherwise, the side must be adjacent
+to another junction triangle, and the bone connects both junction
+triangles’ centers
 
 #### 4. Skin weights computation
+
+The method listed in the `RigMesh` paper involves making bones radiating heat onto the surface, and the equilibrium temperature at
+each vertex is computed by solving a linear system of equations. 
 
 
 ### Operations
