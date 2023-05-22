@@ -2,21 +2,23 @@
 #define _SKETCHY_PIPELINE_
 
 #include <utils.hpp>
+#include <mesh-geometry.hpp>
+#include "rigging.hpp"
 
 class Pipeline {
 public:
-    Pipeline();
+    Pipeline(
+        std::vector<glm::vec2> & sketchPoints
+    ): sketchPoints(sketchPoints) {}
 
-    std::vector<Mesh> computeCylinders();
+    std::vector<MeshGeometry> computeCylinders();
 
-    Mesh computeMeshFromCylinders(std::vector<Mesh>);
+    MeshGeometry computeMeshFromCylinders(std::vector<MeshGeometry> & cylinders);
 
-    Rigging computeSkeleton(Mesh);
-
-    void pipelineStep();
+    Rigging computeSkeleton(MeshGeometry & mesh);
 
 private:
-    std::vector<glm::vec2> sketchPoints;
+    std::vector<glm::vec2> & sketchPoints;
 
 };
 

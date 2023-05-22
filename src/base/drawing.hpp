@@ -104,6 +104,25 @@ public:
     glBindVertexArray(0);
   }
 
+  inline std::vector<glm::vec3> getDrawing(int i) {
+    int start = subDrawingStarts[i];
+    size_t count = 0;
+    if(i<subDrawingStarts.size()-1) {
+      count = subDrawingStarts[i+1] - start;
+    }
+    else {
+      count = drawing.size() - start;
+    }
+    return std::vector<glm::vec3>(
+      drawing.begin()+start,
+      drawing.begin()+(start+count)
+    );
+  }
+
+  inline unsigned drawingCount() {
+    return subDrawingStarts.size();
+  }
+
 private:
   std::vector<glm::vec3> drawing;
   std::vector<unsigned> subDrawingStarts;

@@ -202,6 +202,18 @@ void triangleBarycentricCoords(
     u = triangleArea(b, c, p)/totalArea;
 }
 
+glm::vec2 triangleCircumcenter(
+    const glm::vec2 & a, const glm::vec2 & b, const glm::vec2 & c
+) {
+    float la = glm::sin(2*glm::angle(glm::normalize(b-a), glm::normalize(c-a)));
+    float lb = glm::sin(2*glm::angle(glm::normalize(a-b), glm::normalize(c-b)));
+    float lc = glm::sin(2*glm::angle(glm::normalize(a-c), glm::normalize(b-c)));
+    return {
+        (a.x*la + b.x*lb + c.x*lc)/(la + lb + lc),
+        (a.y*la + b.y*lb + c.y*lc)/(la + lb + lc)
+    };
+}
+
 bool isPointInTriangle(
     const glm::vec2 & p,
     const glm::vec2 & a,

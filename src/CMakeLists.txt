@@ -11,10 +11,10 @@ project(sketchy)
 add_executable(${PROJECT_NAME} main.cpp)
 
 # CGAL
-# find_package(CGAL QUIET COMPONENTS Core )
-# include( ${CGAL_USE_FILE} )
-# include_directories(${CGAL_INCLUDE_DIR})
-# target_link_libraries(${PROJECT_NAME} ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES})
+find_package(CGAL QUIET COMPONENTS Core )
+include( ${CGAL_USE_FILE} )
+include_directories(${CGAL_INCLUDE_DIR})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${CGAL_LIBRARIES} ${CGAL_3RD_PARTY_LIBRARIES})
 
 # GLAD
 target_sources(${PROJECT_NAME} PRIVATE dep/glad/src/glad.c)
@@ -59,6 +59,10 @@ target_sources(
 
   base/geometry/geometry.cpp
 
+  base/modeling/medial-axis.cpp
+  base/modeling/delaunay.cpp
+  base/modeling/cylindrical-douglas-peucker.cpp
+
   dep/imgui/imgui.cpp
   dep/imgui/imgui_draw.cpp
   dep/imgui/imgui_tables.cpp
@@ -68,7 +72,8 @@ target_sources(
   )
 target_include_directories(
   ${PROJECT_NAME} PRIVATE
-  base/)
+  base/
+  dep/)
 
 add_custom_command(TARGET ${PROJECT_NAME}
   POST_BUILD

@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <string>
 
+#include <utils.hpp>
+
 namespace Geometry {
 
 struct Edge {
@@ -105,12 +107,30 @@ void triangleBarycentricCoords(
     const glm::vec3 & p, const glm::vec3 & a, const glm::vec3 & b, const glm::vec3 & c,
     float & u, float & v, float & w
 );
+glm::vec2 triangleCircumcenter(
+    const glm::vec2 & a, const glm::vec2 & b, const glm::vec2 & c
+);
 bool isPointInTriangle(
     const glm::vec2 & p,
     const glm::vec2 & a,
     const glm::vec2 & b,
     const glm::vec2 & c
 );
+
+inline float pointToSegmentDistance(const glm::vec2 & p, const glm::vec2 & s1, const glm::vec2 & s2) {
+    return 
+        glm::abs((s2.x-s1.x)*(s1.y-p.y) - (s1.x-p.x)*(s2.y-s1.y))
+        /
+        glm::sqrt( (s2.x-s1.x)*(s2.x-s1.x) + (s2.y-s1.y)*(s2.y-s1.y) );
+}
+
+inline float norm(const glm::vec2 & s1, const glm::vec2 & s2) {
+    return glm::sqrt((s1.x-s2.x)*(s1.x-s2.x) + (s1.y-s2.y)*(s1.y-s2.y));
+}
+
+inline float norm(const glm::vec3 & s1, const glm::vec3 & s2) {
+    return glm::sqrt((s1.x-s2.x)*(s1.x-s2.x) + (s1.y-s2.y)*(s1.y-s2.y) + (s1.z-s2.z)*(s1.z-s2.z));
+}
 
 
 namespace BoundingBox {
