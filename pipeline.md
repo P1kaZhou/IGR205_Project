@@ -95,3 +95,6 @@ Connecting means that a new bone (highlighted in red) is inserted to connect the
 The bones that aren't influencal for any vertex on the merged surface are pruned, and skin weights are updated.
 
 #### 3. Skeleton refinement
+
+"Skeleton refinement" involves mainly splitting an existing bone and adding a joint to it, or removing a bone and merging its two joints.
+This can be treated as a cut followed by a merge, and the same operations are applied.
