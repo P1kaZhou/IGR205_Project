@@ -22,14 +22,12 @@ void smoothing::laplacianSmoothingOnce(int k) {
         for (int j = -k; j < k; j++) {
             int trueIndex = j + i;
 
-            if (trueIndex < 0) {
-                trueIndex = n + trueIndex;
-            } else if (trueIndex >= n) {
-                trueIndex = trueIndex - n;
-            } // Now trueIndex is between 0 and n-1
+            if (trueIndex < 0 || trueIndex >= n){
+                trueIndex = i;
+            }// Now trueIndex is between 0 and n-1
 
-            if (trueIndex != i){
-                newPoint += lambda*sketchPoints[trueIndex];
+            if (j != 0){
+                newPoint += lambda*sketchPoints[trueIndex]/k;
             }
         }
         newSketchPoints.push_back(newPoint);
