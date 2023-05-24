@@ -290,9 +290,9 @@ void testPipeline(
     }
     auto axis = medial.getMedialAxis();
     std::vector<std::pair<glm::vec2, glm::vec2>> segments;
-    for(auto ax : axis) {
-      for(auto s : ax.second) {
-        segments.emplace_back(ax.first, s);
+    for(auto ax : axis.getPoints()) {
+      for(auto s : ax->getAdjs()) {
+        segments.emplace_back(ax->getPoint(), s->getPoint());
       }
     }
     std::vector<glm::vec2> pointsSeg;
@@ -504,9 +504,9 @@ int main(int argc, char ** argv) {
     auto midPoints = medial.computeMidPoints();
     auto axis = medial.getMedialAxis();
     std::vector<std::pair<glm::vec2, glm::vec2>> segments;
-    for(auto ax : axis) {
-      for(auto s : ax.second) {
-        segments.emplace_back(ax.first, s);
+    for(auto ax : axis.getPoints()) {
+      for(auto s : ax->getAdjs()) {
+        segments.emplace_back(ax->getPoint(), s->getPoint());
       }
     }
 

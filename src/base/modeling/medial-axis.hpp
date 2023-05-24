@@ -14,6 +14,137 @@ struct std::less<glm::vec2>  {
     }
 };
 
+
+class MedialAxisPoint {
+public:
+  MedialAxisPoint(const glm::vec2 & point)
+  : point(point) {}
+
+  inline int getAdjIndex(MedialAxisPoint * p) {
+    for(int i=0; i<adjs.size(); i++) {
+      auto adj = adjs[i];
+      if(adj == p) return i;
+    }
+    return -1;
+  }
+
+  inline void removeAdjIfExist(MedialAxisPoint * p) {
+    int index = getAdjIndex(p);
+    if(index >= 0) adjs.erase(adjs.begin()+index);
+  }
+
+  inline void addAdj(MedialAxisPoint * p) {
+    auto index = getAdjIndex(p);
+    if(index == -1) {
+      adjs.push_back(p);
+    }
+  }
+
+  inline const glm::vec2 & getPoint() { return point; }
+  inline const std::vector<MedialAxisPoint *> & getAdjs() { return adjs; }
+
+private:
+  glm::vec2 point;
+  std::vector<MedialAxisPoint *> adjs;
+};
+
+class MedialAxis {
+public:
+  MedialAxis() {}
+
+  inline void clear() {
+    for(MedialAxisPoint * p : points) {
+      delete p;
+    }
+    points.clear();
+  }
+
+  inline MedialAxisPoint * insertPoint(const glm::vec2 & point) {
+    MedialAxisPoint * p = getAxisPoint(point);
+    if(p == nullptr) {
+      p = new MedialAxisPoint(point);
+      points.push_back(p);
+    }
+    return p;
+  }
+
+  inline void insertEdge(const glm::vec2 & point1, const glm::vec2 & point2) {
+    auto p1 = insertPoint(point1);
+    auto p2 = insertPoint(point2);
+    p1->addAdj(p2);
+    p2->addAdj(p1);
+  }
+
+  inline void removePoint(const glm::vec2 & point) {
+    int index = getAxisPointIndex(point);
+    if(index >= 0) {
+      for(MedialAxisPoint * p : points) {
+        p->removeAdjIfExist(points[index]);
+      }
+      delete points[index];
+      points.erase(points.begin()+index);
+    }
+  }
+
+  inline MedialAxisPoint * getAxisPoint(const glm::vec2 & point) {
+    for(MedialAxisPoint * p : points) {
+      if(p->getPoint() == point) {
+        return p;
+      }
+    }
+    return nullptr;
+  }
+
+  inline int getAxisPointIndex(const glm::vec2 & point) {
+    for(int i=0; i<points.size(); i++) {
+      MedialAxisPoint * p = points[i];
+      if(p->getPoint() == point) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  inline const std::vector<MedialAxisPoint*> & getPoints() { return points; }
+
+  inline void showAsAdjMatrix() {
+    unsigned N = points.size();
+    int mat[N][N];
+    memset(mat, 0, sizeof(int)*N*N);
+    for(unsigned i=0; i<N; i++) {
+      auto p = points[i];
+      for(unsigned k=0; k<p->getAdjs().size(); k++) {
+        auto q = p->getAdjs()[k];
+        unsigned j = getAxisPointIndex(q->getPoint());
+        mat[i][j] = 1;
+      }
+    }
+    for(unsigned i=0; i<N; i++) {
+      for(unsigned j=0; j<N; j++) {
+        std::cout << mat[i][j];
+        if(j<N-1) std::cout << ", ";
+      }
+      std::cout << std::endl;
+    }
+  }
+
+  inline void showAsAdjList() {
+    for(unsigned i=0; i<points.size(); i++) {
+      auto p = points[i];
+      std::cout << i;
+      showVec(p->getPoint(), " point");
+      std::cout << "count " << p->getAdjs().size() << std::endl;
+      for(auto q : p->getAdjs()) {
+        std::cout << "\t" << getAxisPointIndex(q->getPoint());
+        showVec(q->getPoint(), " n");
+      }
+    }
+  }
+
+private:
+  std::vector<MedialAxisPoint*> points;
+};
+
 class MedialAxisGenerator {
 public:
   MedialAxisGenerator(
@@ -23,8 +154,8 @@ public:
 
   std::vector<std::vector<glm::vec2>> extractExternalAxis();
 
-  inline std::vector< std::pair<glm::vec2, std::vector<glm::vec2>>> getMedialAxis() {
-    return rawMedialAxis;
+  inline MedialAxis & getMedialAxis() {
+    return medialAxis;
   }
 
   void pruning(unsigned minSize);
@@ -37,112 +168,13 @@ private:
   std::vector<glm::vec2> & points; // Points of the shape
   std::vector<glm::uvec3> & triangulation;
 
-  std::vector< std::pair<glm::vec2, std::vector<glm::vec2>>> rawMedialAxis;
+  MedialAxis medialAxis;
   
   unsigned triangleInternalEdgeCount(
     const glm::uvec3 & triangle,
     std::vector<glm::uvec2> & internalEdges,
     std::vector<glm::uvec2> & externalEdges
   );
-
-  void insertSegment(const glm::vec2 & a, const glm::vec2 & b);
-  void removeVertex(const glm::vec2 & a);
-
-  inline bool isSame(const glm::vec2 & a, const glm::vec2 & b) {
-    return glm::distance(a,b) < minDistance;
-    // return a==b;
-  }
-
-  double minDistance = 0.00001;
-
-  inline void showMedialAxis() {
-    // for(unsigned i=0; i<rawMedialAxis.size(); i++) {
-    //   auto p = rawMedialAxis[i];
-    //   std::cout << i;
-    //   showVec(p.first, " point");
-    //   std::cout << "count " << p.second.size() << std::endl;
-    //   for(auto q : p.second) {
-    //     std::cout << "\t" << get(rawMedialAxis, q);
-    //     showVec(q, " n");
-    //   }
-    // }
-
-    // for(unsigned i=0; i<rawMedialAxis.size(); i++) {
-    //   std::cout << i << std::endl;
-    // }
-    // for(unsigned i=0; i<rawMedialAxis.size(); i++) {
-    //   auto p = rawMedialAxis[i];
-    //   for(unsigned j=0; j<p.second.size(); j++) {
-    //     auto q = p.second[j];
-    //     std::cout << i << " " << get(rawMedialAxis, q) << std::endl;
-    //   }
-    // }
-
-    int mat[rawMedialAxis.size()][rawMedialAxis.size()];
-    memset(mat, 0, sizeof(int)*rawMedialAxis.size()*rawMedialAxis.size());
-    for(unsigned i=0; i<rawMedialAxis.size(); i++) {
-      auto p = rawMedialAxis[i];
-      for(unsigned k=0; k<p.second.size(); k++) {
-        auto q = p.second[k];
-        unsigned j = get(rawMedialAxis, q);
-        mat[i][j] = 1;
-      }
-    }
-    for(unsigned i=0; i<rawMedialAxis.size(); i++) {
-      for(unsigned j=0; j<rawMedialAxis.size(); j++) {
-        std::cout << mat[i][j];
-        if(j<rawMedialAxis.size()-1) std::cout << ", ";
-      }
-      std::cout << std::endl;
-    }
-  }
-
-  inline float getMinDistance() {
-    float min = 10000;
-    for(unsigned i=0; i<rawMedialAxis.size(); i++) {
-      auto & m = rawMedialAxis[i];
-      for(unsigned j=0; j<rawMedialAxis.size(); j++) {
-        auto & n = rawMedialAxis[j];
-        float d = glm::distance(m.first, n.first);
-        if(d < min && i!=j) {
-          min = d;
-        }
-      }
-    }
-    minDistance = min;
-    return min;
-  }
-
-  inline bool contains(
-    const std::vector< std::pair<glm::vec2, std::vector<glm::vec2>>> & rawMedialAxis,
-    const glm::vec2 & v
-  ) {
-    for(auto & m : rawMedialAxis) {
-      if(glm::distance(m.first,v) < minDistance) return true;
-      // if(m.first==v) return true;
-    }
-    return false;
-  }
-
-  inline unsigned get(
-    const std::vector< std::pair<glm::vec2, std::vector<glm::vec2>>> & rawMedialAxis,
-    const glm::vec2 & v
-  ) {
-    for(unsigned i=0; i<rawMedialAxis.size(); i++) {
-      auto & m = rawMedialAxis[i];
-      if(glm::distance(m.first,v) < minDistance) return i;
-      // if(m.first==v) return i;
-    }
-    return 0;
-  }
-
-  inline bool contains(const std::vector<glm::vec2> & points, const glm::vec2 & p) {
-    for(auto point : points) {
-      if(glm::distance(point,p) < minDistance) return true;
-      // if(point==p) return true;
-    }
-    return false;
-  }
 
 };
 
