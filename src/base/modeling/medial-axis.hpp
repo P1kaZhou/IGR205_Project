@@ -107,75 +107,11 @@ public:
 
   inline const std::vector<MedialAxisPoint*> & getPoints() { return points; }
 
-  inline void showAsAdjMatrix() {
-    unsigned N = points.size();
-    int mat[N][N];
-    memset(mat, 0, sizeof(int)*N*N);
-    for(unsigned i=0; i<N; i++) {
-      auto p = points[i];
-      for(unsigned k=0; k<p->getAdjs().size(); k++) {
-        auto q = p->getAdjs()[k];
-        unsigned j = getAxisPointIndex(q->getPoint());
-        mat[i][j] = 1;
-      }
-    }
-    for(unsigned i=0; i<N; i++) {
-      for(unsigned j=0; j<N; j++) {
-        std::cout << mat[i][j];
-        if(j<N-1) std::cout << ", ";
-      }
-      std::cout << std::endl;
-    }
-  }
-
-  inline void showAsAdjList() {
-    for(unsigned i=0; i<points.size(); i++) {
-      auto p = points[i];
-      std::cout << i;
-      showVec(p->getPoint(), " point");
-      std::cout << "count " << p->getAdjs().size() << std::endl;
-      for(auto q : p->getAdjs()) {
-        std::cout << "\t" << getAxisPointIndex(q->getPoint());
-        showVec(q->getPoint(), " n");
-      }
-    }
-  }
+  void showAsAdjMatrix();
+  void showAsAdjList();
 
 private:
   std::vector<MedialAxisPoint*> points;
-};
-
-class MedialAxisGenerator {
-public:
-  MedialAxisGenerator(
-      std::vector<glm::vec2> & points,
-      std::vector<glm::uvec3> & triangulation
-  ): points(points), triangulation(triangulation) {}
-
-  std::vector<std::vector<glm::vec2>> extractExternalAxis();
-
-  inline MedialAxis & getMedialAxis() {
-    return medialAxis;
-  }
-
-  void pruning(unsigned minSize);
-
-  std::vector<glm::vec2> computeMidPoints();
-
-  void compute();
-
-private:
-  std::vector<glm::vec2> & points; // Points of the shape
-  std::vector<glm::uvec3> & triangulation;
-
-  MedialAxis medialAxis;
-  
-  unsigned triangleInternalEdgeCount(
-    const glm::uvec3 & triangle,
-    std::vector<glm::uvec2> & internalEdges,
-    std::vector<glm::uvec2> & externalEdges
-  );
-
 };
 
 #endif

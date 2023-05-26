@@ -19,6 +19,16 @@ public:
 
     inline std::vector<std::vector<glm::vec2>> & getSkeleton() {return skeleton;}
 
+    inline void showSkeleton() {
+        std::cout << "skeleton :" << std::endl;
+        for(auto skel : skeleton) {
+            std::cout << "\tskeleton axis :" << std::endl;
+            for(auto joint : skel) {
+                showVec(joint, "joint");
+            }
+        }
+    }
+
 private:
     const std::vector<glm::vec2> & points;
     const std::vector<std::vector<glm::vec2>> & axis;
@@ -42,8 +52,8 @@ private:
         // showVec(start, "start");
         // showVec(end, "end");
         // showVec(v, "v");
-        auto startChord = getChordOnPoint(start);
-        auto endChord = getChordOnPoint(end);
+        auto startChord = Geometry::getChordOnPoint(start, points, chords);
+        auto endChord = getChordOnPoint(end, points, chords);
         // showVec(points[startChord.a], "points[startChord.a]");
         // showVec(points[startChord.b], "points[startChord.b]");
         // showVec(points[endChord.a], "points[endChord.a]");
@@ -58,7 +68,7 @@ private:
         // showVec(baseC, "baseC");
         // showVec(baseD, "baseD");
 
-        const auto & vChord = getChordOnPoint(v);
+        const auto & vChord = getChordOnPoint(v, points, chords);
         // showVec(points[vChord.a], "points[vChord.a],");
         // showVec(points[vChord.b], "points[vChord.b],");
         auto e1_dTop = Geometry::pointToSegmentDistance(points[vChord.a], baseA, baseD);
@@ -90,22 +100,7 @@ private:
         return v0+A*u;
     }
 
-    /*
-    Return the closest chord to a point.
-    */
-    inline const Geometry::Edge & getChordOnPoint(const glm::vec2 & p) {
-        unsigned closestChord;
-        float minArea = FLT_MAX;
-        for(unsigned i=0; i<chords.size(); i++) {
-            const auto & c = chords[i];
-            float area = Geometry::triangleArea(points[c.a], points[c.b], p);
-            if(minArea > area) {
-                minArea = area;
-                closestChord = i;
-            }
-        }
-        return chords[closestChord];
-    }
+    
 };
 
 #endif

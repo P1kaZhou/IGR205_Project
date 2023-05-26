@@ -11,14 +11,6 @@ void CDP::compute() {
 
         skeleton.push_back(skel);
     }
-
-    std::cout << "skeleton :" << std::endl;
-    for(auto skel : skeleton) {
-        std::cout << "\tskeleton axis :" << std::endl;
-        for(auto joint : skel) {
-            showVec(joint, "joint");
-        }
-    }
 }
 
 void CDP::computeSingleAxisSkeleton(

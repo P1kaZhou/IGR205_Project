@@ -132,6 +132,12 @@ inline float norm(const glm::vec3 & s1, const glm::vec3 & s2) {
     return glm::sqrt((s1.x-s2.x)*(s1.x-s2.x) + (s1.y-s2.y)*(s1.y-s2.y) + (s1.z-s2.z)*(s1.z-s2.z));
 }
 
+const Geometry::Edge & getChordOnPoint(
+    const glm::vec2 & p,
+    const std::vector<glm::vec2> & points,
+    const std::vector<Geometry::Edge> & chords
+);
+
 
 namespace BoundingBox {
 

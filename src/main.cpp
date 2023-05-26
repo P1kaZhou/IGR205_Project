@@ -12,7 +12,9 @@
 
 #include <modeling/delaunay.hpp>
 #include <modeling/medial-axis.hpp>
+#include <modeling/medial-axis-generator.hpp>
 #include <modeling/cylindrical-douglas-peucker.hpp>
+#include <modeling/cylinder-generator.hpp>
 
 #include <geometry/draw-2d.hpp>
 
@@ -21,6 +23,8 @@ Renderer * renderer = nullptr;
 Mesh * selectedMesh = nullptr;
 CameraController * camController;
 Drawing * drawing;
+
+Mesh * generatedMesh = nullptr;
 
 void errorCallback(int error, const char *desc) {
   std::cout <<  "Error " << error << ": " << desc << std::endl;
@@ -260,6 +264,7 @@ glm::vec3 shapePointColor = {0, 0, 200};
 glm::vec3 skeletonPointColor = {255, 0, 0};
 
 float cdp_threshold = 0.5;
+int ma_prun_depth = 15;
 
 void testPipeline(
   std::vector<glm::vec2> & points
@@ -284,9 +289,9 @@ void testPipeline(
   auto midPoints = medial.computeMidPoints();
   for(unsigned i=0; i<2; i++){
     if(i==1) {
-      medial.pruning(5);
-      medial.pruning(10);
-      medial.pruning(15);
+      medial.pruning(ma_prun_depth*(1/3));
+      medial.pruning(ma_prun_depth*(2/3));
+      medial.pruning(ma_prun_depth);
     }
     auto axis = medial.getMedialAxis();
     std::vector<std::pair<glm::vec2, glm::vec2>> segments;
@@ -381,6 +386,7 @@ void renderImGui() {
 
     // Cylindrical Douglas-Peucker threshold
     ImGui::SliderFloat("C Douglas-Peucker threshold", &cdp_threshold, 0.0f, 1.0f);
+    ImGui::SliderInt("Medial axis prunning threshold", &ma_prun_depth, 3, 30);
 
     // Perform skeleton computation on shape
     if (ImGui::Button("Medial axis")) {
@@ -490,10 +496,12 @@ int main(int argc, char ** argv) {
 
     ConstrainedDelaunayTriangulation2D d(points);
     auto triangles = d.getTriangles();
+    auto edges = d.getEdges();
 
     {
       Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
       builder.drawTriangles(points, triangles, chordColor);
+      // builder.drawEdges(points, edges,  chordColor);
       builder.drawShape(true, points, shapeColor);
       builder.drawPoints(points, shapePointColor);
       builder.save("01-delaunay.ppm");
@@ -526,10 +534,23 @@ int main(int argc, char ** argv) {
       for(auto ax : external) {
         builder.drawShape(false, ax, axisColor);
       }
+      builder.drawTriangles(points, triangles, chordColor);
       builder.drawShape(true, points, shapeColor);
       builder.drawPoints(points, shapePointColor);
       builder.save("03-external-medial-axis.ppm");
     }
+
+    // std::cout <<  "edge count : " << edges.size() << std::endl;
+    // CylinderGenerator cylGen(external[1], points, edges);
+    // cylGen.compute(50);
+    // // cylGen.showVertices();
+    // // cylGen.showFaces();
+    // MeshGeometry * geometry = new MeshGeometry(cylGen.getVertexPos(), cylGen.getFaces());
+    // generatedMesh = new Mesh(
+    //   geometry,
+    //   MeshMaterial::meshGetBasicMaterial({0.5, 0.5, 0})
+    // );
+    // renderer->addRenderable(generatedMesh);
   }
 
   { // Test Cylindrical Douglas Peucker
@@ -577,6 +598,18 @@ int main(int argc, char ** argv) {
     builder.drawPoints(points, shapePointColor);
     builder.drawPoints(skeleton[0], skeletonPointColor);
     builder.save("04-skeleton.ppm");
+
+
+    CylinderGenerator cylGen(axis[0], points, chords);
+    cylGen.compute(50);
+    cylGen.showVertices();
+    cylGen.showFaces();
+    MeshGeometry * geometry = new MeshGeometry(cylGen.getVertexPos(), cylGen.getFaces());
+    generatedMesh = new Mesh(
+      geometry,
+      MeshMaterial::meshGetBasicMaterial({0.5, 0.5, 0})
+    );
+    renderer->addRenderable(generatedMesh);
   }
 
   long delta = 0;

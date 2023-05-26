@@ -20,18 +20,57 @@ void ConstrainedDelaunayTriangulation2D::constrainedDelaunayWithCDT(
     [](const glm::vec2 & p){ return p.y; }
   );
   cdt.insertEdges(
-      constraint.begin(),
-      constraint.end(),
-      [](const glm::uvec2 & p){ return p.x; },
-      [](const glm::uvec2 & p){ return p.y; }
+    constraint.begin(),
+    constraint.end(),
+    [](const glm::uvec2 & p){ return p.x; },
+    [](const glm::uvec2 & p){ return p.y; }
   );
 
   cdt.eraseSuperTriangle();
   // cdt.eraseOuterTrianglesAndHoles();
   for(auto f : cdt.triangles) {
-      triangles.emplace_back(f.vertices[0], f.vertices[1], f.vertices[2]);
-  }
-  for(auto e : cdt.fixedEdges) {
-      edges.emplace_back(e.v1(), e.v2());
+    triangles.emplace_back(f.vertices[0], f.vertices[1], f.vertices[2]);
+
+    {
+      bool isNotFixed = true;
+      auto a = f.vertices[0];
+      auto b = f.vertices[1];
+      for(auto e : cdt.fixedEdges) {
+        if( (e.v1() == a || e.v2() == a) && (e.v1() == b || e.v2() == b)) {
+          isNotFixed = false;
+        }
+      }
+      if(isNotFixed) {
+        edges.emplace_back(a, b);
+      }
+    }
+
+    {
+      bool isNotFixed = true;
+      auto a = f.vertices[1];
+      auto b = f.vertices[2];
+      for(auto e : cdt.fixedEdges) {
+        if( (e.v1() == a || e.v2() == a) && (e.v1() == b || e.v2() == b)) {
+          isNotFixed = false;
+        }
+      }
+      if(isNotFixed) {
+        edges.emplace_back(a, b);
+      }
+    }
+
+    {
+      bool isNotFixed = true;
+      auto a = f.vertices[2];
+      auto b = f.vertices[0];
+      for(auto e : cdt.fixedEdges) {
+        if( (e.v1() == a || e.v2() == a) && (e.v1() == b || e.v2() == b)) {
+          isNotFixed = false;
+        }
+      }
+      if(isNotFixed) {
+        edges.emplace_back(a, b);
+      }
+    }
   }
 }

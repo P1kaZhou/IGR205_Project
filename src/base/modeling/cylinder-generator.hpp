@@ -1,0 +1,48 @@
+#ifndef _SKETCHY_CYLINDER_GENERATOR_
+#define _SKETCHY_CYLINDER_GENERATOR_
+
+#include <utils.hpp>
+#include <map>
+
+#include <geometry/geometry.hpp>
+
+class CylinderGenerator {
+public:
+    CylinderGenerator(
+        const std::vector<glm::vec2> & axis,
+        const std::vector<glm::vec2> & shape,
+        const std::vector<Geometry::Edge> & chords
+    ): axis(axis), shape(shape), chords(chords) {}
+
+    void compute(unsigned circleSampleCount);
+
+    inline std::vector<glm::vec3> & getVertexPos() { return genVertexPos; }
+    inline std::vector<glm::uvec3> & getFaces() { return genFaces; }
+
+    inline void showVertices() {
+        std::cout << "Vertices : " << genVertexPos.size() << std::endl;
+        for(auto v : genVertexPos) {
+            showVec(v, "\tv : ");
+        }
+    }
+
+    inline void showFaces() {
+        std::cout << "Faces :" << genFaces.size() << std::endl;
+        for(auto f : genFaces) {
+            showVec(f, "\tf : ");
+        }
+    }
+
+private:
+    // Input
+    const std::vector<glm::vec2> & axis;
+    const std::vector<glm::vec2> & shape;
+    const std::vector<Geometry::Edge> & chords;
+
+    // Output
+    std::vector<glm::vec3> genVertexPos;
+    std::vector<glm::uvec3> genFaces;
+
+};
+
+#endif

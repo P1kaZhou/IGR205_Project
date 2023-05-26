@@ -224,6 +224,27 @@ bool isPointInTriangle(
     return triangleArea(a,b,c)==areaSum;
 }
 
+/*
+Return the closest chord to a point.
+*/
+const Geometry::Edge & getChordOnPoint(
+    const glm::vec2 & p,
+    const std::vector<glm::vec2> & points,
+    const std::vector<Geometry::Edge> & chords
+) {
+    unsigned closestChord;
+    float minArea = FLT_MAX;
+    for(unsigned i=0; i<chords.size(); i++) {
+        const auto & c = chords[i];
+        float area = Geometry::triangleArea(points[c.a], points[c.b], p);
+        if(minArea > area) {
+            minArea = area;
+            closestChord = i;
+        }
+    }
+    return chords[closestChord];
+}
+
 
 
 namespace BoundingBox {

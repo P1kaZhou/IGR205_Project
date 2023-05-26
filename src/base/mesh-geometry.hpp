@@ -9,6 +9,16 @@ Holds geometry data.
 */
 class MeshGeometry {
 public:
+    MeshGeometry() {}
+
+    MeshGeometry(
+        std::vector<glm::vec3> & vertexPositions,
+        std::vector<glm::uvec3> & faces
+    ): vertexPositions(vertexPositions), faces(faces) {
+        boundingBox = Geometry::BoundingBox::computeBoundingBox(vertexPositions);
+        recomputeVertexNormals();
+    }
+
     static MeshGeometry * meshGetTriangleData(float width, float height, const glm::vec3 * color);
     static MeshGeometry * meshGetPlaneData(float width, float height, const glm::vec3 * color);
     static MeshGeometry * meshGetCubeData(float lx, float ly, float lz, const glm::vec3 * color);
