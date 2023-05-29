@@ -30,6 +30,7 @@ public:
 
     std::vector<glm::uvec3> getSignificantTriangles(std::vector<glm::uvec3> & triangles, std::vector<glm::vec2> & points);
 
+    std::vector<glm::uvec3> computeConnectingRegion(std::vector<glm::uvec3> & triangles, std::vector<glm::vec2> & points);
 };
 
 

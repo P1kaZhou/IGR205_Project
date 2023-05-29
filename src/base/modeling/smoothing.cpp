@@ -84,4 +84,26 @@ std::vector<glm::uvec3> smoothing::computeJunctionTriangles(ConstrainedDelaunayT
 
 std::vector<glm::uvec3> smoothing::getSignificantTriangles(std::vector<glm::uvec3> & triangles, std::vector<glm::vec2> & points){
 
+
+}
+
+std::vector<glm::uvec3> smoothing::computeConnectingRegion(std::vector<glm::uvec3> & triangles, std::vector<glm::vec2> & points){
+    // At this point, we only have the significant triangles
+
+    int trianglesNumber = triangles.size(); // To achieve the merging, we will need to compare respective distances
+    std::vector<std::vector<float>> distances = std::vector<std::vector<float>>(trianglesNumber, std::vector<float>(trianglesNumber));
+    // All the distances are initialized to 0, but they are going to be filled. It's a symmetric matrix but it doesn't matter
+    for (int i = 0; i < trianglesNumber; i++){
+        for (int j = 0; j < trianglesNumber; j++){
+            if (i != j){
+                // The metric we are going to use will be the euclidean distance, from the centers of the triangles
+                glm::vec2 center1 = (points[triangles[i][0]] + points[triangles[i][1]] + points[triangles[i][2]])/3.0f;
+                glm::vec2 center2 = (points[triangles[j][0]] + points[triangles[j][1]] + points[triangles[j][2]])/3.0f;
+                distances[i][j] = glm::distance(center1, center2);
+                distances[j][i] = distances[i][j];
+            }
+        }
+    }
+
+    // Now we have the distances, we can start merging the triangles, but for this we need to know which triangle is going to be merged with which
 }
