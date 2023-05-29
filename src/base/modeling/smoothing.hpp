@@ -13,7 +13,7 @@
 class smoothing {
 
 private:
-    std::vector<glm::vec2> & sketchPoints;
+
     float lambda;
 
 public:
@@ -21,6 +21,14 @@ public:
     void setLambda(float lambda);
 
     void applyLaplacianToMedial(MedialAxis & medialAxis, int iterations);
+
+    void insignificantBranchesRemoval(MedialAxis & medialAxis, float threshold, ConstrainedDelaunayTriangulation2D & cdt);
+
+    void chordialAxisTransform(ConstrainedDelaunayTriangulation2D & cdt, MedialAxis & medialAxis); // Not sure
+
+    std::vector<glm::uvec3> computeJunctionTriangles(ConstrainedDelaunayTriangulation2D & cdt);
+
+    std::vector<glm::uvec3> getSignificantTriangles(std::vector<glm::uvec3> & triangles, std::vector<glm::vec2> & points);
 
 };
 
