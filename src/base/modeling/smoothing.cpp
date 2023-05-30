@@ -71,7 +71,7 @@ smoothing::computeNormalChordalAxes(MedialAxis &medialAxis, ConstrainedDelaunayT
             bool foundClosest2 = false;
             int rank = 0;
             while (!foundClosest1 && !foundClosest2){
-
+                // At this point we need to check both distances (small enough) and scalar products (perpendicular enough)
             }
 
         }
