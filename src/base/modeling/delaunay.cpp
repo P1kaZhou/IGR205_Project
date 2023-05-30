@@ -26,7 +26,8 @@ void ConstrainedDelaunayTriangulation2D::constrainedDelaunayWithCDT(
     [](const glm::uvec2 & p){ return p.y; }
   );
 
-  cdt.eraseSuperTriangle();
+  // cdt.eraseSuperTriangle();
+  cdt.eraseOuterTriangles();
   // cdt.eraseOuterTrianglesAndHoles();
   for(auto f : cdt.triangles) {
     triangles.emplace_back(f.vertices[0], f.vertices[1], f.vertices[2]);

@@ -122,6 +122,60 @@ std::vector<std::vector<glm::vec2>> MedialAxisGenerator::extractExternalAxis() {
   return axisList;
 }
 
+std::vector<std::vector<glm::vec2>> MedialAxisGenerator::extractInternalAxis() {
+  std::cout << "Start internal axis extraction" << std::endl;
+  std::vector<std::vector<glm::vec2>> axisList;
+  // list of points that are ajacent to points with 3 or more adjacent points
+  std::vector<glm::vec2> internalAxisEndPoints;
+  for(auto medialPoint : medialAxis.getPoints()) {
+    if(medialPoint->getAdjs().size()>2) {
+      // We start with an internal node
+      for(auto adjPoint : medialPoint->getAdjs()) {
+        if(std::find(
+          internalAxisEndPoints.begin(),
+          internalAxisEndPoints.end(),
+          adjPoint->getPoint()
+        ) == internalAxisEndPoints.end()) {
+          // If the adjacent point is not the end of a previous internal axis
+          std::vector<glm::vec2> axis;
+          axis.push_back(medialPoint->getPoint());
+          axis.push_back(adjPoint->getPoint());
+          auto prevStart = medialPoint->getPoint();
+          auto start = adjPoint->getPoint();
+          bool stop = false;
+          while(!stop && medialAxis.getAxisPoint(start)->getAdjs().size()==2) {
+            // While we are on the same axis
+            auto adjs = medialAxis.getAxisPoint(start)->getAdjs();
+            if(adjs[0]->getPoint()==prevStart) {
+              prevStart = start;
+              start = adjs[1]->getPoint();
+            }
+            else {
+              prevStart = start;
+              start = adjs[0]->getPoint();
+            }
+
+            // To prevent eventual loops
+            if(std::find(axis.begin(), axis.end(), start) != axis.end()) {
+              stop = true;
+            }
+            else {
+              axis.push_back(start);
+            }
+          }
+          if(medialAxis.getAxisPoint(start)->getAdjs().size()>2) {
+            // If it's an internal axis
+            internalAxisEndPoints.push_back(axis[axis.size()-2]);
+            axisList.push_back(axis);
+          }
+        }
+      }
+    }
+  }
+  std::cout << "end internal axis extraction" << std::endl;
+  return axisList;
+}
+
 void MedialAxisGenerator::pruning(unsigned minSize) {
   std::cout << "Start prunning" << std::endl;
   std::vector<std::vector<glm::vec2>> axiss = extractExternalAxis();
