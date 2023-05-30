@@ -265,6 +265,7 @@ glm::vec3 skeletonPointColor = {255, 0, 0};
 
 float cdp_threshold = 0.5;
 int ma_prun_depth = 15;
+int ma_prun_count = 3;
 
 void testPipeline(
   std::vector<glm::vec2> & points
@@ -289,9 +290,10 @@ void testPipeline(
   auto midPoints = medial.computeMidPoints();
   for(unsigned i=0; i<2; i++){
     if(i==1) {
-      medial.pruning(ma_prun_depth*(1/3));
-      medial.pruning(ma_prun_depth*(2/3));
-      medial.pruning(ma_prun_depth);
+      for(int ii=1; ii<=ma_prun_count; ii++) {
+        // medial.pruning(ma_prun_depth*(ii/ma_prun_count));
+        medial.pruning(ma_prun_depth);
+      }
     }
     auto axis = medial.getMedialAxis();
     std::vector<std::pair<glm::vec2, glm::vec2>> segments;
@@ -328,8 +330,24 @@ void testPipeline(
     builder.drawPoints(points, shapePointColor);
     builder.save("03-external-medial-axis.ppm");
   }
+  // Internal axis of the medial axis tree
+  auto internalAxis = medial.extractInternalAxis();
+  {
+    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
+    builder.setExtraPoints(points);
+    for(auto ax : internalAxis) {
+      builder.drawShape(false, ax, axisColor);
+      builder.drawPoints(ax, axisPointColor);
+    }
+    builder.drawShape(true, points, shapeColor);
+    builder.drawPoints(points, shapePointColor);
+    builder.save("03-internal-medial-axis.ppm");
+  }
 
   // Skeleton
+  for(auto & skelAxis : externalAxis) {
+    skelAxis.erase(skelAxis.begin()+skelAxis.size()-1);
+  }
   CDP cdp(points, externalAxis, chords, cdp_threshold);
   cdp.compute();
   auto skeleton = cdp.getSkeleton();
@@ -386,7 +404,8 @@ void renderImGui() {
 
     // Cylindrical Douglas-Peucker threshold
     ImGui::SliderFloat("C Douglas-Peucker threshold", &cdp_threshold, 0.0f, 1.0f);
-    ImGui::SliderInt("Medial axis prunning threshold", &ma_prun_depth, 3, 30);
+    ImGui::SliderInt("Medial axis prunning threshold", &ma_prun_depth, 3, 60);
+    ImGui::SliderInt("Medial axis prunning count", &ma_prun_count, 1, 10);
 
     // Perform skeleton computation on shape
     if (ImGui::Button("Medial axis")) {
@@ -540,17 +559,17 @@ int main(int argc, char ** argv) {
       builder.save("03-external-medial-axis.ppm");
     }
 
-    // std::cout <<  "edge count : " << edges.size() << std::endl;
-    // CylinderGenerator cylGen(external[1], points, edges);
-    // cylGen.compute(50);
-    // // cylGen.showVertices();
-    // // cylGen.showFaces();
-    // MeshGeometry * geometry = new MeshGeometry(cylGen.getVertexPos(), cylGen.getFaces());
-    // generatedMesh = new Mesh(
-    //   geometry,
-    //   MeshMaterial::meshGetBasicMaterial({0.5, 0.5, 0})
-    // );
-    // renderer->addRenderable(generatedMesh);
+    std::cout <<  "edge count : " << edges.size() << std::endl;
+    CylinderGenerator cylGen(external[1], points, edges);
+    cylGen.compute(50);
+    // cylGen.showVertices();
+    // cylGen.showFaces();
+    MeshGeometry * geometry = new MeshGeometry(cylGen.getVertexPos(), cylGen.getFaces());
+    generatedMesh = new Mesh(
+      geometry,
+      MeshMaterial::meshGetBasicMaterial({0.5, 0.5, 0})
+    );
+    renderer->addRenderable(generatedMesh);
   }
 
   { // Test Cylindrical Douglas Peucker
@@ -600,16 +619,16 @@ int main(int argc, char ** argv) {
     builder.save("04-skeleton.ppm");
 
 
-    CylinderGenerator cylGen(axis[0], points, chords);
-    cylGen.compute(50);
-    cylGen.showVertices();
-    cylGen.showFaces();
-    MeshGeometry * geometry = new MeshGeometry(cylGen.getVertexPos(), cylGen.getFaces());
-    generatedMesh = new Mesh(
-      geometry,
-      MeshMaterial::meshGetBasicMaterial({0.5, 0.5, 0})
-    );
-    renderer->addRenderable(generatedMesh);
+    // CylinderGenerator cylGen(axis[0], points, chords);
+    // cylGen.compute(50);
+    // cylGen.showVertices();
+    // cylGen.showFaces();
+    // MeshGeometry * geometry = new MeshGeometry(cylGen.getVertexPos(), cylGen.getFaces());
+    // generatedMesh = new Mesh(
+    //   geometry,
+    //   MeshMaterial::meshGetBasicMaterial({0.5, 0.5, 0})
+    // );
+    // renderer->addRenderable(generatedMesh);
   }
 
   long delta = 0;

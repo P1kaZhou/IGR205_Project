@@ -4,9 +4,16 @@
 #include <utils.hpp>
 #include <skeleton.hpp>
 
+/*
+The skinning of vertices for one bone.
+*/
 class SkinningGroup {
 public:
-    SkinningGroup() {}
+    SkinningGroup(unsigned verticesCount) {
+        for(unsigned i=0; i<verticesCount; i++) {
+            vertexSkinWeights.insert({i, 0.0f});
+        }
+    }
 
     inline void setSkinWeight(unsigned vertexIndice, float weight) {
         vertexSkinWeights[vertexIndice] = weight;
@@ -18,7 +25,9 @@ private:
 
 class Rigging {
 public:
-    Rigging();
+    Rigging() {}
+
+    // SKELETON
 
     /*
     Insert a joint at the point position.
@@ -60,12 +69,43 @@ public:
         assert(false);
     }
 
+    // SKINNING
+
+    inline void initSkinning(
+        unsigned verticesCount
+    ) {
+        bonesSkins.resize(verticesCount, SkinningGroup(verticesCount));
+        this->verticesCount = verticesCount;
+    }
+
+    inline void setBoneSkinning(
+        unsigned jointAId, unsigned jointBId,
+        const std::vector<float> & vertexSkinningWeights
+    ) {
+        unsigned index = getBoneIndexByJointsId(jointAId, jointBId);
+        for(unsigned i=0; i<verticesCount; i++) {
+            bonesSkins[index].setSkinWeight(i, vertexSkinningWeights[i]);
+        }
+    }
+
 private:
     std::vector<SkeletonJoint> joints;
     std::vector<SkeletonBone> bones;
     std::vector<SkinningGroup> bonesSkins;
 
+    unsigned verticesCount;
+
     unsigned lastID = 0;
+
+    inline unsigned getBoneIndexByJointsId(unsigned jointAId, unsigned jointBId) {
+        for(unsigned i=0; i<bones.size(); i++) {
+            const SkeletonBone & it = bones[i];
+            if(it.a.id == jointAId && it.b.id == jointBId) return i;
+            else if(it.a.id == jointAId && it.b.id == jointBId) return i;
+        }
+        std::cerr << "Unknown skeleton bone for joint ids " << jointAId << " and " << jointBId << std::endl;
+        assert(false);
+    }
 };
 
 #endif

@@ -11,6 +11,7 @@ public:
   ): points(points), triangulation(triangulation) {}
 
   std::vector<std::vector<glm::vec2>> extractExternalAxis();
+  std::vector<std::vector<glm::vec2>> extractInternalAxis();
 
   inline MedialAxis & getMedialAxis() {
     return medialAxis;

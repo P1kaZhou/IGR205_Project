@@ -113,10 +113,16 @@ public:
     else {
       count = drawing.size() - start;
     }
-    return std::vector<glm::vec3>(
-      drawing.begin()+start,
-      drawing.begin()+(start+count)
-    );
+
+    std::vector<glm::vec3> res;
+    res.reserve(drawing.size());
+    for(unsigned i=0; i<drawing.size(); i++) {
+      if(i%10==0) {
+        res.push_back(drawing[i]);
+      }
+    }
+
+    return res;
   }
 
   inline unsigned drawingCount() {
