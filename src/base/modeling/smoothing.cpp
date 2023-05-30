@@ -15,37 +15,53 @@ void smoothing::applyLaplacianToMedial(MedialAxis &medialAxis, int iterations) {
         for (int i = 0; i < points.size(); i++) {
             MedialAxisPoint *point = points[i];
             glm::vec2 newPoint = (1 - lambda) * point->getPoint();
-            int adjPointsIndex = point->getAdjIndex(point);
-            MedialAxisPoint *adjPoints = point->getAdjs()[adjPointsIndex];
-            int v = 0;
-            glm::vec2 alternativePoint = glm::vec2(0, 0);
-            /*
-            for (auto point : adjPoints) {
-                MedialAxisPoint * adjPoint = adjPoints[j];
-                newPoint += lambda*adjPoint->getPoint()/v;
+            std::vector<MedialAxisPoint *> neighbors = point->getAdjs();
+            int v = neighbors.size();
+            // Iterate through every neighbor of the point
+            for (auto const &neighbor: neighbors) {
+                newPoint += lambda / v * neighbor->getPoint();
             }
-            // Add the corrected point to the medial axis
 
-            */
         }
 
     }
 }
 
-// Not sure whether I should go for this one
-void smoothing::chordialAxisTransform(ConstrainedDelaunayTriangulation2D &cdt, MedialAxis &medialAxis) {
-    std::vector<glm::uvec3> &triangles = cdt->getTriangles();
-    std::vector<Geometry::Edge> &edges = cdt->getEdges();
-    std::vector<glm::vec2> boundaryEdges; // placeholder
+std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxis &medialAxis, ConstrainedDelaunayTriangulation2D &cdt,
+                                                            std::vector<glm::vec2> sketchPoints) {
+    std::vector<MedialAxisPoint*> points = medialAxis.getPoints();
+    std::vector<glm::uvec3> triangles = cdt->getTriangles();
 
-    // Question
+    std::vector<glm::uvec2> normalChordalAxes; // The axes are determines by two points from the sketchpoints
 
+    std::set<Geometry::Edge> visitedEdges;
+
+    // The idea:
+    // Iterate through the triangles of the CDT, and "perpendicularize" them with the CAT from medial axis
+    for (auto triangle: triangles){
+        glm::vec2 a = sketchPoints[triangle.x];
+        glm::vec2 b = sketchPoints[triangle.y];
+        glm::vec2 c = sketchPoints[triangle.z];
+
+        // Get the smallest angle of the triangle
+        float abc = glm::acos(glm::dot(glm::normalize(a - b), glm::normalize(c - b)));
+        float bca = glm::acos(glm::dot(glm::normalize(b - c), glm::normalize(a - c)));
+        float cab = glm::acos(glm::dot(glm::normalize(c - a), glm::normalize(b - a)));
+
+        // Now if abc is the smallest angle, the edges ab and bc are the ones that will be perpendicularized
+        // And also added to the visited edges, that is
+    }
 
 }
 
 void smoothing::insignificantBranchesRemoval(MedialAxis &medialAxis, float threshold,
                                              ConstrainedDelaunayTriangulation2D &cdt) {
     std::vector<glm::uvec3> &triangles = cdt->getTriangles();
+    // TODO: apply Prasad criteria
+    // The threshold represents the ratio of morphological significance, p/AB
+
+
+
 
 }
 
@@ -82,23 +98,46 @@ std::vector<glm::uvec3> smoothing::computeJunctionTriangles(ConstrainedDelaunayT
     return junctionTriangles;
 }
 
-std::vector<glm::uvec3> smoothing::getSignificantTriangles(std::vector<glm::uvec3> & triangles, std::vector<glm::vec2> & points){
+std::vector<glm::uvec3>
+smoothing::getSignificantTriangles(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points) {
+    // Most likely, there will be triangles from various area.
+    // The easiest way will be to ditch the triangles that are too small
 
-
+    std::vector<glm::uvec3> significantTriangles;
+    std::vector<float> areas = std::vector<float>(triangles.size());
+    for (int i = 0; i < triangles.size(); i++) {
+        glm::vec2 a = points[triangles[i][0]];
+        glm::vec2 b = points[triangles[i][1]];
+        glm::vec2 c = points[triangles[i][2]];
+        float area = 0.5f * glm::abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y));
+        areas[i] = area;
+    }
+    // Now it is up to us to decide. For now let's keep the ones above average
+    float average = std::accumulate(areas.begin(), areas.end(), 0.0f) / areas.size();
+    for (int i = 0; i < triangles.size(); i++) {
+        if (areas[i] > average) {
+            significantTriangles.push_back(triangles[i]);
+        }
+    }
+    return significantTriangles;
 }
 
-std::vector<glm::uvec3> smoothing::computeConnectingRegion(std::vector<glm::uvec3> & triangles, std::vector<glm::vec2> & points){
+std::vector<glm::uvec3>
+smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points) {
     // At this point, we only have the significant triangles
 
     int trianglesNumber = triangles.size(); // To achieve the merging, we will need to compare respective distances
-    std::vector<std::vector<float>> distances = std::vector<std::vector<float>>(trianglesNumber, std::vector<float>(trianglesNumber));
+    std::vector<std::vector<float>> distances = std::vector<std::vector<float>>(trianglesNumber,
+                                                                                std::vector<float>(trianglesNumber));
     // All the distances are initialized to 0, but they are going to be filled. It's a symmetric matrix but it doesn't matter
-    for (int i = 0; i < trianglesNumber; i++){
-        for (int j = 0; j < trianglesNumber; j++){
-            if (i != j){
+    for (int i = 0; i < trianglesNumber; i++) {
+        for (int j = 0; j < trianglesNumber; j++) {
+            if (i != j) {
                 // The metric we are going to use will be the euclidean distance, from the centers of the triangles
-                glm::vec2 center1 = (points[triangles[i][0]] + points[triangles[i][1]] + points[triangles[i][2]])/3.0f;
-                glm::vec2 center2 = (points[triangles[j][0]] + points[triangles[j][1]] + points[triangles[j][2]])/3.0f;
+                glm::vec2 center1 =
+                        (points[triangles[i][0]] + points[triangles[i][1]] + points[triangles[i][2]]) / 3.0f;
+                glm::vec2 center2 =
+                        (points[triangles[j][0]] + points[triangles[j][1]] + points[triangles[j][2]]) / 3.0f;
                 distances[i][j] = glm::distance(center1, center2);
                 distances[j][i] = distances[i][j];
             }

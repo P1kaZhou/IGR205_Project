@@ -24,7 +24,8 @@ public:
 
     void insignificantBranchesRemoval(MedialAxis & medialAxis, float threshold, ConstrainedDelaunayTriangulation2D & cdt);
 
-    void chordialAxisTransform(ConstrainedDelaunayTriangulation2D & cdt, MedialAxis & medialAxis); // Not sure
+    std::vector<glm::uvec2> computeNormalChordalAxes(MedialAxis & medialAxis, ConstrainedDelaunayTriangulation2D & cdt,
+                                                     std::vector<glm::vec2> & points);
 
     std::vector<glm::uvec3> computeJunctionTriangles(ConstrainedDelaunayTriangulation2D & cdt);
 
