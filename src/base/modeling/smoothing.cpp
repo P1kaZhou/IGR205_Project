@@ -27,29 +27,54 @@ void smoothing::applyLaplacianToMedial(MedialAxis &medialAxis, int iterations) {
     }
 }
 
-std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxis &medialAxis, ConstrainedDelaunayTriangulation2D &cdt,
-                                                            std::vector<glm::vec2> sketchPoints) {
-    std::vector<MedialAxisPoint*> points = medialAxis.getPoints();
+std::vector<glm::uvec2>
+smoothing::computeNormalChordalAxes(MedialAxis &medialAxis, ConstrainedDelaunayTriangulation2D &cdt,
+                                    std::vector<glm::vec2> sketchPoints) {
+    // There may actually be no need for the triangles, I can just go through the chordal axis and create a normal segment
+    std::vector<MedialAxisPoint *> points = medialAxis.getPoints();
     std::vector<glm::uvec3> triangles = cdt->getTriangles();
 
     std::vector<glm::uvec2> normalChordalAxes; // The axes are determines by two points from the sketchpoints
 
-    std::set<Geometry::Edge> visitedEdges;
+    std::set<unsigned> visitedPoints;
 
-    // The idea:
-    // Iterate through the triangles of the CDT, and "perpendicularize" them with the CAT from medial axis
-    for (auto triangle: triangles){
-        glm::vec2 a = sketchPoints[triangle.x];
-        glm::vec2 b = sketchPoints[triangle.y];
-        glm::vec2 c = sketchPoints[triangle.z];
+    // Iterate through every medial axis point
+    for (auto maPoint: points){
+        std::vector<MedialAxisPoint *> neighbors = maPoint->getAdjs();
+        if (neighbors.size() == 2){ // local gradient computable
+            glm::vec2 middlePoint = maPoint->getPoint();
+            glm::vec2 p1 = neighbors[0]->getPoint();
+            glm::vec2 p2 = neighbors[1]->getPoint();
+            glm::vec2 gradient = glm::normalize(p2 - p1);
+            glm::vec2 normal = glm::vec2(-gradient.y, gradient.x);
 
-        // Get the smallest angle of the triangle
-        float abc = glm::acos(glm::dot(glm::normalize(a - b), glm::normalize(c - b)));
-        float bca = glm::acos(glm::dot(glm::normalize(b - c), glm::normalize(a - c)));
-        float cab = glm::acos(glm::dot(glm::normalize(c - a), glm::normalize(b - a)));
+            // Find the two closest points
+            // One point from the direction proj1 = middlePoint + t * normal
+            // The other point from the direction proj2 = middlePoint - t * normal
+            // Requirements: distance small enough, and scalar product of normal with (middlepoint, point) close to 1 (normalized)
+            // The other one will actually be close to -1 (normalized)
 
-        // Now if abc is the smallest angle, the edges ab and bc are the ones that will be perpendicularized
-        // And also added to the visited edges, that is
+            float minDistance = std::numeric_limits<float>::max();
+            glm::vec2 closestPoint1;
+            glm::vec2 closestPoint2;
+            std::vector<float> closestScalarProducts;
+
+            for (int i = 0; i<sketchPoints.size(); i++){
+                glm::vec2 currentPoint = sketchPoints[i];
+                closestScalarProducts.push_back(glm::dot(glm::normalize(normal), glm::normalize(currentPoint - middlePoint)));
+                if (glm::distance(currentPoint, middlePoint) < minDistance){
+                    minDistance = glm::distance(currentPoint, middlePoint);
+                }
+            }
+
+            bool foundClosest1 = false;
+            bool foundClosest2 = false;
+            int rank = 0;
+            while (!foundClosest1 && !foundClosest2){
+
+            }
+
+        }
     }
 
 }
@@ -122,27 +147,20 @@ smoothing::getSignificantTriangles(std::vector<glm::uvec3> &triangles, std::vect
     return significantTriangles;
 }
 
-std::vector<glm::uvec3>
-smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points) {
+std::vector<unsigned>
+smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points,
+                                   MedialAxis &medialAxis) {
     // At this point, we only have the significant triangles
 
     int trianglesNumber = triangles.size(); // To achieve the merging, we will need to compare respective distances
-    std::vector<std::vector<float>> distances = std::vector<std::vector<float>>(trianglesNumber,
-                                                                                std::vector<float>(trianglesNumber));
-    // All the distances are initialized to 0, but they are going to be filled. It's a symmetric matrix but it doesn't matter
-    for (int i = 0; i < trianglesNumber; i++) {
-        for (int j = 0; j < trianglesNumber; j++) {
-            if (i != j) {
-                // The metric we are going to use will be the euclidean distance, from the centers of the triangles
-                glm::vec2 center1 =
-                        (points[triangles[i][0]] + points[triangles[i][1]] + points[triangles[i][2]]) / 3.0f;
-                glm::vec2 center2 =
-                        (points[triangles[j][0]] + points[triangles[j][1]] + points[triangles[j][2]]) / 3.0f;
-                distances[i][j] = glm::distance(center1, center2);
-                distances[j][i] = distances[i][j];
-            }
-        }
-    }
 
-    // Now we have the distances, we can start merging the triangles, but for this we need to know which triangle is going to be merged with which
+    // There is a simple way to pick the merged triangles. If there is a chordal axis linking two triangles
+    // then they are merged.
+    // To see this, let's draw a line between two triangles. If the center of the line is close enough to the chordal axis,
+    // then the triangles will be merged
+    
+
+
+
+
 }
