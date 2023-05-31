@@ -32,12 +32,12 @@ void CDP::computeSingleAxisSkeleton(
     float maxError = FLT_MIN;
     for(;cur!=end;cur++) {
         error = computeError(*start, *end, *cur);
-        std::cout << "error : " << error << std::endl;
+        // std::cout << "error : " << error << std::endl;
         if(error > threshold && maxError <= error) {
             split = cur;
             maxError = error;
             haveSplit = true;
-            std::cout << "split" << std::endl;
+            // std::cout << "split" << std::endl;
         }
     }
 
@@ -86,8 +86,8 @@ float CDP::computeError(
     float distanceError = Geometry::pointToSegmentDistance(v, start, end);
     float cylindricalError = e1*e1 + e2*e2;
 
-    std::cout << "cylindricalError = " << cylindricalError << std::endl;
-    std::cout << "distanceError = " << distanceError << std::endl;
+    // std::cout << "cylindricalError = " << cylindricalError << std::endl;
+    // std::cout << "distanceError = " << distanceError << std::endl;
 
     return importanceCylindricalError*cylindricalError + importanceDistanceError*distanceError;
 }

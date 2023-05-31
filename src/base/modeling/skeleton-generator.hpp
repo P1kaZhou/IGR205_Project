@@ -3,8 +3,8 @@
 
 #include <utils.hpp>
 #include <geometry/geometry.hpp>
-#include <cylindrical-douglas-peucker.hpp>
-#include <rigging.hpp>
+#include "cylindrical-douglas-peucker.hpp"
+#include "rigging.hpp"
 
 class SkeletonGenerator {
 public:
@@ -25,6 +25,8 @@ public:
     {}
 
     void compute();
+
+    inline const Rigging & getRigging() const { return rigging; }
 
 private:
     const std::vector<glm::vec2> & points;

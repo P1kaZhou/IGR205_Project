@@ -21,22 +21,26 @@ void SkeletonGenerator::compute() {
     std::vector<std::pair<glm::vec2, unsigned>> junctionPoints;
 
     // The last joint of each axis is in a junction triangle
-    // We remove that last joint
     for(auto & skelAxis : externalAxis) {
         if(skelAxis.size() >= 2) {
             // We link the junction triangle point to the reste of the axis
             // in the skeleton
-            glm::vec2 junctionTrianglePoint = skelAxis[skelAxis.size()-1];
-            glm::vec2 junctionTriangleLinkPoint = skelAxis[skelAxis.size()-2];
+            glm::vec2 & junctionTrianglePoint = skelAxis[skelAxis.size()-1];
+            glm::vec2 & junctionTriangleLinkPoint = skelAxis[skelAxis.size()-2];
             unsigned junctionTriangleJointId = rigging.addJoint(
                 glm::vec3(junctionTrianglePoint, 0));
             unsigned linkPointJointId = rigging.addJoint(
                 glm::vec3(junctionTriangleLinkPoint, 0));
+
+            showVec(junctionTrianglePoint, "junctionTrianglePoint");
+            showVec(junctionTriangleLinkPoint, "junctionTriangleLinkPoint");
             rigging.addBone(junctionTriangleJointId, linkPointJointId);
 
             junctionPoints.push_back({junctionTrianglePoint, junctionTriangleJointId});
         }
-
+    }
+    // We remove that last joint
+    for(auto & skelAxis : externalAxis) {
         skelAxis.erase(skelAxis.begin()+skelAxis.size()-1);
     }
 
@@ -62,12 +66,12 @@ void SkeletonGenerator::compute() {
     }
 
     for(auto axis : internalAxis) {
-        glm::vec2 junctionTrianglePointStart = axis.front();
-        glm::vec2 junctionTrianglePointEnd = axis.back();
+        const glm::vec2 & junctionTrianglePointStart = axis.front();
+        const glm::vec2 & junctionTrianglePointEnd = axis.back();
         unsigned junctionTriangleJointStartID;
         unsigned junctionTriangleJointEndID;
         if(findIdForKey(junctionPoints, junctionTrianglePointStart, junctionTriangleJointStartID)) {
-            if(findIdForKey(junctionPoints, junctionTrianglePointStart, junctionTriangleJointEndID)) {
+            if(findIdForKey(junctionPoints, junctionTrianglePointEnd, junctionTriangleJointEndID)) {
                 rigging.addBone(
                     junctionTriangleJointStartID,
                     junctionTriangleJointEndID);

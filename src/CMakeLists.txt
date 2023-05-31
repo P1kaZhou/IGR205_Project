@@ -64,6 +64,8 @@ target_sources(
   base/modeling/delaunay.cpp
   base/modeling/cylindrical-douglas-peucker.cpp
   base/modeling/cylinder-generator.cpp
+  base/modeling/rigging.cpp
+  base/modeling/skeleton-generator.cpp
 
   dep/imgui/imgui.cpp
   dep/imgui/imgui_draw.cpp

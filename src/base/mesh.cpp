@@ -30,7 +30,7 @@ void Mesh::render(Renderer & renderer, GLuint program = 0,
     getOpenGLError("draw elements");
   }
   else {
-    glDrawArrays(GL_TRIANGLES, 0, geometry->getVertexColorsVCount());
+    glDrawArrays(GL_TRIANGLES, 0, geometry->getVertexPositionsVCount()/3);
     getOpenGLError("draw arrays");
   }
 }

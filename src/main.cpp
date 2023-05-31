@@ -15,6 +15,9 @@
 #include <modeling/medial-axis-generator.hpp>
 #include <modeling/cylindrical-douglas-peucker.hpp>
 #include <modeling/cylinder-generator.hpp>
+#include <modeling/skeleton-generator.hpp>
+
+#include <modeling/rigging-mesh.hpp>
 
 #include <geometry/draw-2d.hpp>
 
@@ -349,39 +352,48 @@ void testPipeline(
   }
 
   // Skeleton
-  for(auto & skelAxis : externalAxis) {
-    skelAxis.erase(skelAxis.begin()+skelAxis.size()-1);
-  }
-  CDP cdp(points, externalAxis, chords,
-    cdp_threshold, importanceCylindricalError, importanceDistanceError);
-  cdp.compute();
-  auto skeleton = cdp.getSkeleton();
-  {
-    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-    builder.addExtraPoints(points);
-    builder.drawEdges(points, chords, chordColor);
-    for(auto ax : externalAxis) {
-      builder.drawShape(false, ax, axisColor);
-      builder.drawPoints(ax, axisPointColor);
-    }
-    for(auto skel : skeleton) {
-      builder.drawPoints(skel, skeletonPointColor);
-    }
-    builder.drawShape(true, points, shapeColor);
-    builder.drawPoints(points, shapePointColor);
-    builder.save("04-skeleton.ppm");
-  }
-  {
-    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-    builder.addExtraPoints(points);
-    for(auto skel : skeleton) {
-      builder.drawShape(false, skel, skeletonColor);
-      builder.drawPoints(skel, skeletonPointColor);
-    }
-    builder.drawShape(true, points, shapeColor);
-    builder.drawPoints(points, shapePointColor);
-    builder.save("04-skeleton-final.ppm");
-  }
+  // for(auto & skelAxis : externalAxis) {
+  //   skelAxis.erase(skelAxis.begin()+skelAxis.size()-1);
+  // }
+  // CDP cdp(points, externalAxis, chords,
+  //   cdp_threshold, importanceCylindricalError, importanceDistanceError);
+  // cdp.compute();
+  // auto skeleton = cdp.getSkeleton();
+  // {
+  //   Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
+  //   builder.addExtraPoints(points);
+  //   builder.drawEdges(points, chords, chordColor);
+  //   for(auto ax : externalAxis) {
+  //     builder.drawShape(false, ax, axisColor);
+  //     builder.drawPoints(ax, axisPointColor);
+  //   }
+  //   for(auto skel : skeleton) {
+  //     builder.drawPoints(skel, skeletonPointColor);
+  //   }
+  //   builder.drawShape(true, points, shapeColor);
+  //   builder.drawPoints(points, shapePointColor);
+  //   builder.save("04-skeleton.ppm");
+  // }
+  // {
+  //   Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
+  //   builder.addExtraPoints(points);
+  //   for(auto skel : skeleton) {
+  //     builder.drawShape(false, skel, skeletonColor);
+  //     builder.drawPoints(skel, skeletonPointColor);
+  //   }
+  //   builder.drawShape(true, points, shapeColor);
+  //   builder.drawPoints(points, shapePointColor);
+  //   builder.save("04-skeleton-final.ppm");
+  // }
+
+  // Full skeleton
+  SkeletonGenerator skelGen(
+    points, externalAxis, internalAxis, chords,
+    cdp_threshold, importanceDistanceError, importanceCylindricalError);
+  skelGen.compute();
+  Mesh * skeletonMesh = RiggingMesh::createRiggingSkeletonMesh(skelGen.getRigging());
+  renderer->addRenderable(skeletonMesh);
+
 }
 
 void renderImGui() {

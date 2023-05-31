@@ -2,7 +2,7 @@
 #define _SKETCHY_RIGGING_
 
 #include <utils.hpp>
-#include <skeleton.hpp>
+#include "skeleton.hpp"
 
 /*
 The skinning of vertices for one bone.
@@ -41,7 +41,9 @@ public:
     }
 
     inline void addBone(unsigned jointAId, unsigned jointBId) {
-        bones.emplace_back(jointAId, jointBId);
+        bones.emplace_back(
+            getJointById(jointAId),
+            getJointById(jointBId));
     }
 
     inline SkeletonJoint & getJointOnRay(const glm::vec3 & direction, const glm::vec3 & startPos) {
@@ -87,6 +89,9 @@ public:
             bonesSkins[index].setSkinWeight(i, vertexSkinningWeights[i]);
         }
     }
+
+    inline const std::vector<SkeletonBone> & getBones() const { return bones; }
+    inline const std::vector<SkeletonJoint> & getJoints() const { return joints; }
 
 private:
     std::vector<SkeletonJoint> joints;

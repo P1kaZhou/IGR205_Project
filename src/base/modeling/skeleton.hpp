@@ -5,31 +5,6 @@
 
 #include <map>
 
-class SkeletonBone {
-    friend class SkeletonBone;
-    friend class Rigging;
-
-public:
-    SkeletonBone(
-        SkeletonJoint & a,
-        SkeletonJoint & b
-    ): a(a), b(b) {}
-
-    inline SkeletonJoint & getOther(const SkeletonJoint & a) {
-        if(this->a.id == a.id) return this->b;
-        return this->a;
-    }
-
-    bool operator==(SkeletonBone const & bone) const {
-        return (a.id==bone.a.id && b.id==bone.b.id) || 
-            (a.id==bone.b.id && b.id==bone.a.id);
-    }
-
-private:
-    SkeletonJoint & a;
-    SkeletonJoint & b;
-};
-
 class SkeletonJoint {
     friend class SkeletonBone;
     friend class Rigging;
@@ -52,6 +27,10 @@ public:
         adjacentJoints.push_back(joint);
     }
 
+    inline glm::vec3 getPoint() const { return point; }
+    inline unsigned getId() const { return id; }
+    inline std::vector<SkeletonJoint> & getAdjacentJoints() { return adjacentJoints; }
+
 private:
     unsigned id;
     glm::vec3 point;
@@ -72,6 +51,33 @@ private:
         assert(false);
     }
 
+};
+
+class SkeletonBone {
+    friend class Rigging;
+
+public:
+    SkeletonBone(
+        SkeletonJoint & a,
+        SkeletonJoint & b
+    ): a(a), b(b) {}
+
+    inline SkeletonJoint & getOther(const SkeletonJoint & a) const {
+        if(this->a.id == a.id) return this->b;
+        return this->a;
+    }
+
+    bool operator==(SkeletonBone const & bone) const {
+        return (a.id==bone.a.id && b.id==bone.b.id) || 
+            (a.id==bone.b.id && b.id==bone.a.id);
+    }
+
+    inline SkeletonJoint & getA() const { return a; }
+    inline SkeletonJoint & getB() const { return b; }
+
+private:
+    SkeletonJoint & a;
+    SkeletonJoint & b;
 };
 
 #endif

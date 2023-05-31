@@ -4,7 +4,7 @@ void CylinderGenerator::compute(unsigned circleSampleCount) {
     float stepAngle = (2.0f*M_PI)/circleSampleCount;
     std::vector<std::vector<glm::vec3>> circles;
     for(unsigned index=0; index<axis.size(); index++) {
-        std::cout << "Axis point " << std::endl;
+        // std::cout << "Axis point " << std::endl;
         auto & axisPoint = axis[index];
         std::vector<glm::vec3> circle;
         auto chord = Geometry::getChordOnPoint(axisPoint, shape, chords);
@@ -46,7 +46,7 @@ void CylinderGenerator::compute(unsigned circleSampleCount) {
             p = rotMat * glm::vec4(p, 0);
             p = p + center;
             circle.push_back(p);
-            showVec(p, "\t");
+            // showVec(p, "\t");
             // std::cout << std::endl;
         }
         circles.push_back(circle);
