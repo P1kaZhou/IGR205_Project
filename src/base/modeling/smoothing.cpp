@@ -27,9 +27,9 @@ void smoothing::applyLaplacianToMedial(MedialAxis &medialAxis, int iterations) {
     }
 }
 
-std::vector<glm::uvec2>
-smoothing::computeNormalChordalAxes(MedialAxis &medialAxis, ConstrainedDelaunayTriangulation2D &cdt,
-                                    std::vector<glm::vec2> sketchPoints) {
+std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxis &medialAxis,
+                                                            ConstrainedDelaunayTriangulation2D &cdt,
+                                                            std::vector<glm::vec2> sketchPoints) {
     // There may actually be no need for the triangles, I can just go through the chordal axis and create a normal segment
     std::vector<MedialAxisPoint *> points = medialAxis.getPoints();
     std::vector<glm::uvec3> triangles = cdt->getTriangles();
@@ -39,9 +39,9 @@ smoothing::computeNormalChordalAxes(MedialAxis &medialAxis, ConstrainedDelaunayT
     std::set<unsigned> visitedPoints;
 
     // Iterate through every medial axis point
-    for (auto maPoint: points){
+    for (auto maPoint: points) {
         std::vector<MedialAxisPoint *> neighbors = maPoint->getAdjs();
-        if (neighbors.size() == 2){ // local gradient computable
+        if (neighbors.size() == 2) { // local gradient computable
             glm::vec2 middlePoint = maPoint->getPoint();
             glm::vec2 p1 = neighbors[0]->getPoint();
             glm::vec2 p2 = neighbors[1]->getPoint();
@@ -57,26 +57,54 @@ smoothing::computeNormalChordalAxes(MedialAxis &medialAxis, ConstrainedDelaunayT
             float minDistance = std::numeric_limits<float>::max();
             glm::vec2 closestPoint1;
             glm::vec2 closestPoint2;
-            std::vector<float> closestScalarProducts;
+            std::vector<float> scalarProducts;
 
-            for (int i = 0; i<sketchPoints.size(); i++){
+            for (int i = 0; i < sketchPoints.size(); i++) {
                 glm::vec2 currentPoint = sketchPoints[i];
-                closestScalarProducts.push_back(glm::dot(glm::normalize(normal), glm::normalize(currentPoint - middlePoint)));
-                if (glm::distance(currentPoint, middlePoint) < minDistance){
+                scalarProducts.push_back(glm::dot(glm::normalize(normal), glm::normalize(currentPoint - middlePoint)));
+                if (glm::distance(currentPoint, middlePoint) < minDistance) {
                     minDistance = glm::distance(currentPoint, middlePoint);
                 }
             }
 
-            bool foundClosest1 = false;
-            bool foundClosest2 = false;
-            int rank = 0;
-            while (!foundClosest1 && !foundClosest2){
-                // At this point we need to check both distances (small enough) and scalar products (perpendicular enough)
+            // Gather the points which are close enough
+            std::vector<unsigned> closePoints;
+            std::vector<float> closeScalarProducts;
+            const float MARGIN = 0.1;
+            for (int i = 0; i < sketchPoints.size(); i++) {
+                if (glm::distance(sketchPoints[i], middlePoint) <= minDistance + MARGIN) {
+                    closePoints.push_back(i);
+                    closeScalarProducts.push_back(scalarProducts[i]);
+                }
             }
 
+            int candidatesNumber = closePoints.size();
+            const float MIN_POSITIVE_SCALAR_PRODUCT = 0.99;
+            const float MAX_NEGATIVE_SCALAR_PRODUCT = -0.99;
+
+            // We check the most perpendicular points
+            // If they are already found, too bad, I mean there are tons of sketch points anyway
+
+            int maxIndex = std::distance(closeScalarProducts.begin(),
+                                         std::max_element(closeScalarProducts.begin(), closeScalarProducts.end()));
+            int minIndex = std::distance(closeScalarProducts.begin(),
+                                         std::min_element(closeScalarProducts.begin(), closeScalarProducts.end()));
+            int trueMaxIndex = closePoints[maxIndex];
+            int trueMinIndex = closePoints[minIndex];
+
+            if (closeScalarProducts[maxIndex] >= MIN_POSITIVE_SCALAR_PRODUCT &&
+                (visitedPoints.find(trueMaxIndex) != visitedPoints.end()) &&
+                closeScalarProducts[minIndex] <= MAX_NEGATIVE_SCALAR_PRODUCT &&
+                (visitedPoints.find(trueMinIndex) != visitedPoints.end())) {
+
+                visitedPoints.insert(trueMaxIndex);
+                visitedPoints.insert(trueMinIndex);
+
+                normalChordalAxes.push_back(glm::uvec2(trueMaxIndex, trueMinIndex));
+            }
         }
     }
-
+    return normalChordalAxes;
 }
 
 void smoothing::insignificantBranchesRemoval(MedialAxis &medialAxis, float threshold,
@@ -158,7 +186,7 @@ smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vect
     // then they are merged.
     // To see this, let's draw a line between two triangles. If the center of the line is close enough to the chordal axis,
     // then the triangles will be merged
-    
+
 
 
 
