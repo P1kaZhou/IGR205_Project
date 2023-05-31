@@ -83,13 +83,13 @@ float CDP::computeError(
     float e1 = glm::min(e1_dTop, e1_dBottom);
     float e2 = glm::min(e2_dTop, e2_dBottom);
 
-    auto e3 = Geometry::pointToSegmentDistance(v, start, end);
+    float distanceError = Geometry::pointToSegmentDistance(v, start, end);
+    float cylindricalError = e1*e1 + e2*e2;
 
-    std::cout << "e1 = " << e1 << std::endl;
-    std::cout << "e2 = " << e2 << std::endl;
-    std::cout << "e3 = " << e3 << std::endl;
+    std::cout << "cylindricalError = " << cylindricalError << std::endl;
+    std::cout << "distanceError = " << distanceError << std::endl;
 
-    return e1*e1 + e2*e2 + e3;
+    return importanceCylindricalError*cylindricalError + importanceDistanceError*distanceError;
 }
 
 glm::vec2 CDP::getPointChordProjectionOnAxiOrthogonalTo(

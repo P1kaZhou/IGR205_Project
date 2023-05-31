@@ -253,8 +253,8 @@ ControllerMode controllerMode = ControllerMode::FPS;
 
 bool drawing_render_3d = false;
 
-int im_resolution_w = 200;
-int im_resolution_h = 200;
+int im_resolution_w = 400;
+int im_resolution_h = 400;
 
 glm::vec3 chordColor = {0, 200, 0};
 glm::vec3 axisColor = {255, 255, 255};
@@ -262,8 +262,12 @@ glm::vec3 axisPointColor = {0, 200, 200};
 glm::vec3 shapeColor = {150, 0, 0};
 glm::vec3 shapePointColor = {0, 0, 200};
 glm::vec3 skeletonPointColor = {255, 0, 0};
+glm::vec3 skeletonColor = {255, 255, 255};
 
 float cdp_threshold = 0.5;
+float importanceCylindricalError = 1.0f;
+float importanceDistanceError = 1.0f;
+
 int ma_prun_depth = 15;
 int ma_prun_count = 3;
 
@@ -348,7 +352,8 @@ void testPipeline(
   for(auto & skelAxis : externalAxis) {
     skelAxis.erase(skelAxis.begin()+skelAxis.size()-1);
   }
-  CDP cdp(points, externalAxis, chords, cdp_threshold);
+  CDP cdp(points, externalAxis, chords,
+    cdp_threshold, importanceCylindricalError, importanceDistanceError);
   cdp.compute();
   auto skeleton = cdp.getSkeleton();
   {
@@ -365,6 +370,17 @@ void testPipeline(
     builder.drawShape(true, points, shapeColor);
     builder.drawPoints(points, shapePointColor);
     builder.save("04-skeleton.ppm");
+  }
+  {
+    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
+    builder.addExtraPoints(points);
+    for(auto skel : skeleton) {
+      builder.drawShape(false, skel, skeletonColor);
+      builder.drawPoints(skel, skeletonPointColor);
+    }
+    builder.drawShape(true, points, shapeColor);
+    builder.drawPoints(points, shapePointColor);
+    builder.save("04-skeleton-final.ppm");
   }
 }
 
@@ -403,9 +419,14 @@ void renderImGui() {
     ImGui::Checkbox("3D drawing", &drawing_render_3d);
 
     // Cylindrical Douglas-Peucker threshold
-    ImGui::SliderFloat("C Douglas-Peucker threshold", &cdp_threshold, 0.0f, 1.0f);
-    ImGui::SliderInt("Medial axis prunning threshold", &ma_prun_depth, 3, 60);
-    ImGui::SliderInt("Medial axis prunning count", &ma_prun_count, 1, 10);
+    ImGui::SliderFloat("CDP threshold", &cdp_threshold, 0.0f, 2.0f);
+    ImGui::SliderFloat("CDP c error", &importanceCylindricalError, 0.0f, 1.0f);
+    ImGui::SliderFloat("CDP d error", &importanceDistanceError, 0.0f, 1.0f);
+    ImGui::SliderInt("prunning thresh", &ma_prun_depth, 3, 60);
+    ImGui::SliderInt("nbr of prunning", &ma_prun_count, 1, 10);
+
+    ImGui::SliderInt("resolution w", &im_resolution_w, 100, 2000);
+    ImGui::SliderInt("resolution h", &im_resolution_h, 100, 2000);
 
     // Perform skeleton computation on shape
     if (ImGui::Button("Medial axis")) {
