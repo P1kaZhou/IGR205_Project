@@ -226,5 +226,5 @@ smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vect
 
 
     }
-    // TODO: return a vector of uvec2 that is a POLYGON, every uvec2 is an edge of the polygon
+    // TODO: return a vector of uvec2 that is a POLYGON, every uvec2 is an edge of the polygon.
 }

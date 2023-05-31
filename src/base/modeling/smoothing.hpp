@@ -32,6 +32,7 @@ public:
 
     std::vector<glm::uvec2> computeConnectingRegion(std::vector<glm::uvec3> & triangles, std::vector<glm::vec2> & points,
                                                     MedialAxis &medialAxis);
+
 };
 
 
