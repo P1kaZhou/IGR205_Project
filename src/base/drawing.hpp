@@ -116,13 +116,18 @@ public:
 
     std::vector<glm::vec3> res;
     res.reserve(drawing.size());
-    for(unsigned i=0; i<drawing.size(); i++) {
+    for(unsigned i=start; i<start+count; i++) {
       if(i%10==0) {
         res.push_back(drawing[i]);
       }
     }
 
     return res;
+
+    // return std::vector<glm::vec3>(
+    //   drawing.begin()+start,
+    //   drawing.begin()+(start+count)
+    // );
   }
 
   inline unsigned drawingCount() {

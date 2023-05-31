@@ -3,6 +3,7 @@
 void CDP::compute() {
     skeleton.clear();
     for(auto ax : axis) {
+        std::cout << "CDP" << std::endl;
         auto skel = std::vector<glm::vec2>();
 
         skel.push_back(*ax.begin());
@@ -82,7 +83,13 @@ float CDP::computeError(
     float e1 = glm::min(e1_dTop, e1_dBottom);
     float e2 = glm::min(e2_dTop, e2_dBottom);
 
-    return e1*e1 + e2*e2;
+    auto e3 = Geometry::pointToSegmentDistance(v, start, end);
+
+    std::cout << "e1 = " << e1 << std::endl;
+    std::cout << "e2 = " << e2 << std::endl;
+    std::cout << "e3 = " << e3 << std::endl;
+
+    return e1*e1 + e2*e2 + e3;
 }
 
 glm::vec2 CDP::getPointChordProjectionOnAxiOrthogonalTo(

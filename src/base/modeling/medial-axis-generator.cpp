@@ -87,6 +87,7 @@ void MedialAxisGenerator::compute() {
 std::vector<std::vector<glm::vec2>> MedialAxisGenerator::extractExternalAxis() {
   std::cout << "Start external axis extraction" << std::endl;
   std::vector<std::vector<glm::vec2>> axisList;
+  std::vector<glm::vec2> externalAxisEndPoints;
   for(auto medialPoint : medialAxis.getPoints()) {
     if(medialPoint->getAdjs().size()==1) {
       std::vector<glm::vec2> axis;
@@ -115,10 +116,19 @@ std::vector<std::vector<glm::vec2>> MedialAxisGenerator::extractExternalAxis() {
           axis.push_back(start);
         }
       }
-      axisList.push_back(axis);
+      std::cout << axis.size() << std::endl;
+      // if(std::find(
+      //     externalAxisEndPoints.begin(),
+      //     externalAxisEndPoints.end(),
+      //     axis[axis.size()-1]
+      //   ) == externalAxisEndPoints.end())
+      // {
+      //   externalAxisEndPoints.push_back(axis[axis.size()-1]);
+        axisList.push_back(axis);
+      // }
     }
   }
-  std::cout << "end external axis extraction" << std::endl;
+  std::cout << "end external axis extraction " << axisList.size() << std::endl;
   return axisList;
 }
 
@@ -166,13 +176,14 @@ std::vector<std::vector<glm::vec2>> MedialAxisGenerator::extractInternalAxis() {
           if(medialAxis.getAxisPoint(start)->getAdjs().size()>2) {
             // If it's an internal axis
             internalAxisEndPoints.push_back(axis[axis.size()-2]);
+            std::cout << axis.size() << std::endl;
             axisList.push_back(axis);
           }
         }
       }
     }
   }
-  std::cout << "end internal axis extraction" << std::endl;
+  std::cout << "end internal axis extraction " << axisList.size() << std::endl;
   return axisList;
 }
 
