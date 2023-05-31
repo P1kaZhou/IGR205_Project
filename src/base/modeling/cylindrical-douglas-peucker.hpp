@@ -12,8 +12,12 @@ public:
         const std::vector<glm::vec2> & points,
         const std::vector<std::vector<glm::vec2>> & axis,
         const std::vector<Geometry::Edge> & chords,
-        float threshold
-    ): points(points), axis(axis), chords(chords), threshold(threshold) {}
+        float threshold,
+        float importanceCylindricalError = 1.0f,
+        float importanceDistanceError = 1.0f
+    ): points(points), axis(axis), chords(chords), threshold(threshold),
+    importanceCylindricalError(importanceCylindricalError),
+    importanceDistanceError(importanceDistanceError) {}
 
     void compute();
 
@@ -34,6 +38,9 @@ private:
     const std::vector<std::vector<glm::vec2>> & axis;
     const std::vector<Geometry::Edge> & chords;
     float threshold;
+
+    float importanceCylindricalError = 1.0f;
+    float importanceDistanceError = 1.0f;
 
     std::vector<std::vector<glm::vec2>> skeleton;
 
