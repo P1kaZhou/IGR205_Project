@@ -11,6 +11,7 @@ void smoothing::setLambda(float lambda) {
 void smoothing::applyLaplacianToMedial(MedialAxis &medialAxis, int iterations) {
     for (int k = 0; k < iterations; k++) {
         std::vector<MedialAxisPoint *> points = medialAxis.getPoints();
+        std::vector<MedialAxisPoint *> newPoints;
         // Iterate through every medial axis point
         for (int i = 0; i < points.size(); i++) {
             MedialAxisPoint *point = points[i];
@@ -21,9 +22,9 @@ void smoothing::applyLaplacianToMedial(MedialAxis &medialAxis, int iterations) {
             for (auto const &neighbor: neighbors) {
                 newPoint += lambda / v * neighbor->getPoint();
             }
+            newPoints.push_back(new MedialAxisPoint(newPoint));
 
         }
-
     }
 }
 
@@ -175,20 +176,55 @@ smoothing::getSignificantTriangles(std::vector<glm::uvec3> &triangles, std::vect
     return significantTriangles;
 }
 
-std::vector<unsigned>
+std::vector<glm::uvec2>
 smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points,
                                    MedialAxis &medialAxis) {
     // At this point, we only have the significant triangles
 
     int trianglesNumber = triangles.size(); // To achieve the merging, we will need to compare respective distances
 
+    std::vector<MedialAxisPoint*> medialAxisPoints = medialAxis.getPoints();
+
     // There is a simple way to pick the merged triangles. If there is a chordal axis linking two triangles
     // then they are merged.
     // To see this, let's draw a line between two triangles. If the center of the line is close enough to the chordal axis,
     // then the triangles will be merged
+    // Let's use the struct Edge with the two ints being the indices of the triangles
+    std::vector<Geometry::Edge> trianglesCouples;
+    std::set<Geometry::Edge> keptCouples;
+    for (int i = 0; i < trianglesNumber; i++) {
+        for (int j = i + 1; j < trianglesNumber; j++) {
+            trianglesCouples.push_back(Geometry::Edge(i, j));
+        }
+    }
+
+    for (auto edge: trianglesCouples){
+        glm::vec2 a = points[triangles[edge.a][0]];
+        glm::vec2 b = points[triangles[edge.a][1]];
+        glm::vec2 c = points[triangles[edge.a][2]];
+        glm::vec2 d = points[triangles[edge.b][0]];
+        glm::vec2 e = points[triangles[edge.b][1]];
+        glm::vec2 f = points[triangles[edge.b][2]];
+
+        glm::vec2 center = (a + b + c + d + e + f) / 6.0f;
+
+        // Check if there is a close enough point
+        const float MIN_DISTANCE = 0.1f;
+        for (auto point: medialAxisPoints){
+            if (glm::distance(center, point->getPoint()) < MIN_DISTANCE){
+                keptCouples.insert(edge);
+                break;
+            }
+        }
+    }
+
+    // Now we have the triangle couples that are going to be merged
+    std::vector<glm::uvec2> mergedPairs; // Since we merge one triangle vertex with another one
+    for (auto edge: keptCouples){
+        glm::uvec3 triangleA = triangles[edge.a];
+        glm::uvec3 triangleB = triangles[edge.b];
 
 
-
-
-
+    }
+    // TODO: return a vector of uvec2 that is a POLYGON, every uvec2 is an edge of the polygon
 }
