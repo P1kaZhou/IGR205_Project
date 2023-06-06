@@ -127,33 +127,54 @@ void smoothing::insignificantBranchesRemoval(MedialAxis &medialAxis, float thres
 
 std::vector<glm::uvec3> smoothing::computeJunctionTriangles(ConstrainedDelaunayTriangulation2D &cdt) {
     std::vector<Geometry::Edge> &edges = cdt->getEdges();
-
-    std::map<unsigned, std::set<unsigned>> edgeCount;
-    for (int i = 0; i < edges.size(); i++) {
-        Geometry::Edge edge = edges[i];
-        unsigned int a = edge.a;
-        unsigned int b = edge.b;
-        edgeCount[a].insert(b);
-        edgeCount[b].insert(a);
-    }
+    std::vector<glm::uvec3> &triangles = cdt->getTriangles();
 
     std::vector<glm::uvec3> junctionTriangles;
-    for (auto const &[key, val]: edgeCount) {
-        std::set<unsigned> visitedInts;
-        std::vector<unsigned> neighbors = std::vector<unsigned>(val.size());
-        std::copy(val.begin(), val.end(), neighbors.begin());
-        if (val.size() == 2 && !visitedInts.count(key) && !visitedInts.count(neighbors[0]) &&
-            !visitedInts.count(neighbors[1])) {
-            unsigned int a = neighbors[0];
-            unsigned int b = neighbors[1];
-            visitedInts.insert(a);
-            visitedInts.insert(b);
-            visitedInts.insert(key);
-            glm::uvec3 triangle = glm::uvec3(key, a, b);
+
+    for (auto triangle: triangles) {
+        // A triangle is a junction triangle if no edges are in the vector edges
+        unsigned a = triangle[0];
+        unsigned b = triangle[1];
+        unsigned c = triangle[2];
+        Geometry::Edge Eab = Geometry::Edge(a, b);
+        Geometry::Edge Ebc = Geometry::Edge(b, c);
+        Geometry::Edge Eca = Geometry::Edge(c, a);
+        if (std::find(edges.begin(), edges.end(), Eab) == edges.end() &&
+            std::find(edges.begin(), edges.end(), Ebc) == edges.end() &&
+            std::find(edges.begin(), edges.end(), Eca) == edges.end()) {
             junctionTriangles.push_back(triangle);
         }
-
     }
+
+    // Next step is merging the triangles that share one side
+    // We will use a map to store the edges and the triangles that share them
+    /*
+    std::map<Geometry::Edge, std::vector<glm::uvec3>> edgeMap;
+    for (auto triangle: junctionTriangles) {
+        unsigned a = triangle[0];
+        unsigned b = triangle[1];
+        unsigned c = triangle[2];
+        Geometry::Edge Eab = Geometry::Edge(a, b);
+        Geometry::Edge Ebc = Geometry::Edge(b, c);
+        Geometry::Edge Eca = Geometry::Edge(c, a);
+        edgeMap[Eab].push_back(triangle);
+        edgeMap[Ebc].push_back(triangle);
+        edgeMap[Eca].push_back(triangle);
+    }
+    // Now we iterate through edgeMap and merge the triangles that share an edge
+    std::vector<glm::uvec3> mergedTriangles;
+    for (auto const &[key, val]: edgeMap) {
+        int neighborsCount = val.size();
+        if (neighborsCount == 2) {
+            // Triangles needs to be merged
+            // Get the two triangles
+            glm::uvec3 triangleA = val[0];
+            glm::uvec3 triangleB = val[1];
+            unsigned a = key.a;
+            unsigned b = key.b;
+        }
+    } Because I haven't thought of a viable solution yet
+     */
 
     return junctionTriangles;
 }
@@ -266,7 +287,6 @@ smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vect
         int indexB1 = smallestIndex % 3;
         int indexA2 = (int) secondSmallestIndex / 3;
         int indexB2 = secondSmallestIndex % 3;
-
 
 
     }
