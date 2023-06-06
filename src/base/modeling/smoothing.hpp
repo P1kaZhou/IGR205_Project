@@ -20,17 +20,19 @@ public:
 
     void setLambda(float lambda);
 
-    void applyLaplacianToMedial(MedialAxis & medialAxis, int iterations);
+    void applyLaplacianToMedial(MedialAxis &medialAxis, int iterations);
 
-    void insignificantBranchesRemoval(MedialAxis & medialAxis, float threshold, ConstrainedDelaunayTriangulation2D & cdt);
+    void insignificantBranchesRemoval(MedialAxis &medialAxis, float threshold, std::vector<glm::uvec3> triangles,
+                                      std::vector<glm::vec2> sketchPoints);
 
-    std::vector<glm::uvec2> computeNormalChordalAxes(MedialAxis & medialAxis, ConstrainedDelaunayTriangulation2D & cdt,
-                                                     std::vector<glm::vec2> & points);
-    std::vector<glm::uvec3> computeJunctionTriangles(ConstrainedDelaunayTriangulation2D & cdt);
+    std::vector<glm::uvec2> computeNormalChordalAxes(MedialAxis &medialAxis, ConstrainedDelaunayTriangulation2D &cdt,
+                                                     std::vector<glm::vec2> &points);
 
-    std::vector<glm::uvec3> getSignificantTriangles(std::vector<glm::uvec3> & triangles, std::vector<glm::vec2> & points);
+    std::vector<glm::uvec3> computeJunctionTriangles(ConstrainedDelaunayTriangulation2D &cdt);
 
-    std::vector<glm::uvec2> computeConnectingRegion(std::vector<glm::uvec3> & triangles, std::vector<glm::vec2> & points,
+    std::vector<glm::uvec3> getSignificantTriangles(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points);
+
+    std::vector<glm::uvec2> computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points,
                                                     MedialAxis &medialAxis);
 
 };

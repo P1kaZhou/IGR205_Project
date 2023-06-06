@@ -109,13 +109,19 @@ std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxis &medialAx
 }
 
 void smoothing::insignificantBranchesRemoval(MedialAxis &medialAxis, float threshold,
-                                             ConstrainedDelaunayTriangulation2D &cdt) {
-    std::vector<glm::uvec3> &triangles = cdt->getTriangles();
+                                             std::vector<glm::uvec3> triangles,
+                                             std::vector<glm::vec2> sketchPoints) {
     // TODO: apply Prasad criteria
     // The threshold represents the ratio of morphological significance, p/AB
 
+    //The main steps are:
+    // 1. Get the potential candidates for removal. An axis is candidate if only one end of
+    // the axe is connected to a junction
+    // 2. For each candidate, compute the ratio of morphological significance, which is the ratio of the distance
+    // to the junction and the length of the "opposition" side
+    // 3. Should the ratio be below the threshold, remove the candidate
 
-
+    // At this point it'd probably be better to remove the triangles immediately, followed by the chordal axis extension
 
 }
 
@@ -152,6 +158,7 @@ std::vector<glm::uvec3> smoothing::computeJunctionTriangles(ConstrainedDelaunayT
     return junctionTriangles;
 }
 
+//Not needed
 std::vector<glm::uvec3>
 smoothing::getSignificantTriangles(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points) {
     // Most likely, there will be triangles from various area.
@@ -183,7 +190,7 @@ smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vect
 
     int trianglesNumber = triangles.size(); // To achieve the merging, we will need to compare respective distances
 
-    std::vector<MedialAxisPoint*> medialAxisPoints = medialAxis.getPoints();
+    std::vector<MedialAxisPoint *> medialAxisPoints = medialAxis.getPoints();
 
     // There is a simple way to pick the merged triangles. If there is a chordal axis linking two triangles
     // then they are merged.
@@ -198,7 +205,7 @@ smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vect
         }
     }
 
-    for (auto edge: trianglesCouples){
+    for (auto edge: trianglesCouples) {
         glm::vec2 a = points[triangles[edge.a][0]];
         glm::vec2 b = points[triangles[edge.a][1]];
         glm::vec2 c = points[triangles[edge.a][2]];
@@ -210,8 +217,8 @@ smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vect
 
         // Check if there is a close enough point
         const float MIN_DISTANCE = 0.1f;
-        for (auto point: medialAxisPoints){
-            if (glm::distance(center, point->getPoint()) < MIN_DISTANCE){
+        for (auto point: medialAxisPoints) {
+            if (glm::distance(center, point->getPoint()) < MIN_DISTANCE) {
                 keptCouples.insert(edge);
                 break;
             }
@@ -220,9 +227,46 @@ smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vect
 
     // Now we have the triangle couples that are going to be merged
     std::vector<glm::uvec2> mergedPairs; // Since we merge one triangle vertex with another one
-    for (auto edge: keptCouples){
+    for (auto edge: keptCouples) {
         glm::uvec3 triangleA = triangles[edge.a];
         glm::uvec3 triangleB = triangles[edge.b];
+
+        // Get the two couples of points that are going to be merged
+
+        std::vector<float> distances = std::vector<float>(9);
+        for (int i = 0; i < 3; i++) {
+            glm::vec2 a = points[triangleA[i]];
+            for (int j = 0; j < 3; j++) {
+                glm::vec2 b = points[triangleB[j]];
+                distances[i * 3 + j] = glm::distance(a, b);
+            }
+        }
+
+        // Now we have the distances, we need to find the two smallest ones
+        std::vector<float> distancesCopy = distances;
+        std::sort(distancesCopy.begin(), distancesCopy.end());
+        float smallestDistance = distancesCopy[0];
+        float secondSmallestDistance = distancesCopy[1];
+
+        // Now we need to find the indices of the two smallest distances
+        int smallestIndex = -1;
+        int secondSmallestIndex = -1;
+        for (int i = 0; i < 9; i++) {
+            if (distances[i] == smallestDistance) {
+                smallestIndex = i;
+            }
+            if (distances[i] == secondSmallestDistance) {
+                secondSmallestIndex = i;
+            }
+        }
+
+        // Now we have the indices, we need to find the two points
+        // We have the formula index = 3*indexA + indexB
+        int indexA1 = (int) smallestIndex / 3;
+        int indexB1 = smallestIndex % 3;
+        int indexA2 = (int) secondSmallestIndex / 3;
+        int indexB2 = secondSmallestIndex % 3;
+
 
 
     }
