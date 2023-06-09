@@ -108,7 +108,7 @@ std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxis &medialAx
     return normalChordalAxes;
 }
 
-void smoothing::insignificantBranchesRemoval(MedialAxis &medialAxis, float threshold,
+void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, float threshold,
                                              std::vector<glm::uvec3> triangles,
                                              std::vector<glm::vec2> sketchPoints) {
     // TODO: apply Prasad criteria
@@ -122,6 +122,33 @@ void smoothing::insignificantBranchesRemoval(MedialAxis &medialAxis, float thres
     // 3. Should the ratio be below the threshold, remove the candidate
 
     // At this point it'd probably be better to remove the triangles immediately, followed by the chordal axis extension
+
+
+
+    /* Realized it was not useful
+    // STEP 1: get the candidates
+    std::vector<MedialAxisPoint *> points = medialAxis.getPoints();
+    std::map<int, int> candidates; // indexes of beginning and end of candidate axis
+
+
+    int n = points.size();
+    for (int i = 0; i < n ; i++){
+        MedialAxisPoint * axisPoint = points[i];
+        std::vector<MedialAxisPoint *> neighbors = axisPoint->getAdjs();
+        if (neighbors.size() == 1){
+            MedialAxisPoint * myFirstPoint = axisPoint;
+            MedialAxisPoint * mySecondPoint = neighbors[0];
+            while (mySecondPoint->getAdjs().size() == 2){
+                std::vector<MedialAxisPoint *> mySecondPointNeighbors = mySecondPoint->getAdjs();
+                if (mySecondPointNeighbors[0] == myFirstPoint){
+                    mySecondPoint = mySecondPointNeighbors[1];
+                } else {
+                    mySecondPoint = mySecondPointNeighbors[0];
+                }
+            }
+        }
+    }
+    */
 
 }
 
@@ -204,6 +231,7 @@ smoothing::getSignificantTriangles(std::vector<glm::uvec3> &triangles, std::vect
     return significantTriangles;
 }
 
+// Returns: a vector of connecting indexes
 std::vector<glm::uvec2>
 smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points,
                                    MedialAxis &medialAxis) {
@@ -288,7 +316,10 @@ smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vect
         int indexA2 = (int) secondSmallestIndex / 3;
         int indexB2 = secondSmallestIndex % 3;
 
+        mergedPairs.push_back(glm::uvec2(triangleA[indexA1], triangleB[indexA2]));
+        mergedPairs.push_back(glm::uvec2(triangleA[indexB1], triangleB[indexB2]));
 
     }
-    // TODO: return a vector of uvec2 that is a POLYGON, every uvec2 is an edge of the polygon.
+
+    return mergedPairs;
 }
