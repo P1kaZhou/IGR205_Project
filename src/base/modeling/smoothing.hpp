@@ -33,10 +33,11 @@ public:
 
     std::vector<glm::uvec3> computeJunctionTriangles(ConstrainedDelaunayTriangulation2D &cdt);
 
-    std::vector<glm::uvec3> getSignificantTriangles(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points);
-
     std::vector<glm::uvec2> computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points,
                                                     MedialAxis &medialAxis);
+
+    void extendAxis(MedialAxisGenerator &medialAxisG, MedialAxis &medialAxis,
+                    std::set<glm::vec2> pointsToAdd,std::vector<glm::vec2> &sketchPoints);
 
 };
 

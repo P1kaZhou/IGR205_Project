@@ -230,12 +230,7 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, M
                                     triangles.end(), triangle), triangles.end());
     }
 
-    // Extend the chordal axis
-    for (auto startingExtendingPoint: pointsToAdd){
-        //TODO: get the general direction and extend it until it reaches one sketchpoint
-        // Something like dichotomy could work
-    }
-
+    extendAxis(medialAxisG, medialAxis, pointsToAdd, sketchPoints);
 
 }
 
@@ -291,31 +286,6 @@ std::vector<glm::uvec3> smoothing::computeJunctionTriangles(ConstrainedDelaunayT
      */
 
     return junctionTriangles;
-}
-
-//Not needed
-std::vector<glm::uvec3>
-smoothing::getSignificantTriangles(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points) {
-    // Most likely, there will be triangles from various area.
-    // The easiest way will be to ditch the triangles that are too small
-
-    std::vector<glm::uvec3> significantTriangles;
-    std::vector<float> areas = std::vector<float>(triangles.size());
-    for (int i = 0; i < triangles.size(); i++) {
-        glm::vec2 a = points[triangles[i][0]];
-        glm::vec2 b = points[triangles[i][1]];
-        glm::vec2 c = points[triangles[i][2]];
-        float area = 0.5f * glm::abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y));
-        areas[i] = area;
-    }
-    // Now it is up to us to decide. For now let's keep the ones above average
-    float average = std::accumulate(areas.begin(), areas.end(), 0.0f) / areas.size();
-    for (int i = 0; i < triangles.size(); i++) {
-        if (areas[i] > average) {
-            significantTriangles.push_back(triangles[i]);
-        }
-    }
-    return significantTriangles;
 }
 
 // Returns: a vector of connecting indexes
@@ -409,4 +379,75 @@ smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vect
     }
 
     return mergedPairs;
+}
+
+// A separate function for convenience
+// extends the axis with respect to the points to add
+void smoothing::extendAxis(MedialAxisGenerator &medialAxisG, MedialAxis &medialAxis, std::set<glm::vec2> pointsToAdd,
+                           std::vector<glm::vec2> &sketchPoints) {
+    // First step: get the external axis to extend (they are smoothened out first)
+    std::vector<std::vector<glm::vec2>> externalAxisPruned = medialAxisG.extractExternalAxis();
+
+    std::vector<std::vector<glm::vec2>> newAxis;
+    // Second step: iterate through the points to add and extend them
+    for (auto pointToAdd: pointsToAdd) {
+        glm::vec2 gradient = glm::vec2(0.0f);
+        float stepSize = 0.1f; // It's going to change anyway
+        // Get the vector that contains pointToAdd
+        for (auto vecAxis: externalAxisPruned) {
+            if (std::find(vecAxis.begin(), vecAxis.end(), pointToAdd) != vecAxis.end()) {
+                // We found the vector that contains pointToAdd
+                int index = std::find(vecAxis.begin(), vecAxis.end(), pointToAdd) - vecAxis.begin();
+                // Now we need to extend the axis
+                // Surely, the point is at one of the extremities
+                // We are going to compute the gradient by taking the point before and even before
+                // There is a chance that we can't do that in this case ripbozo
+                int gradientAccuracy = 2;
+                if (vecAxis.size() < 2) {
+                    gradientAccuracy = 1;
+                }
+                if (index == 0) {
+                    for (int i = 0; i < gradientAccuracy; i++) {
+                        gradient += (vecAxis[0] - vecAxis[i]) / float(gradientAccuracy);
+                    }
+                    stepSize = glm::distance(vecAxis[0], vecAxis[1]);
+                } else if (index == vecAxis.size() - 1) {
+                    for (int i = 0; i < gradientAccuracy; i++) {
+                        gradient += (vecAxis[vecAxis.size() - 1] - vecAxis[vecAxis.size() - 1 - i]) /
+                                    float(gradientAccuracy);
+                    }
+                    stepSize = glm::distance(vecAxis[vecAxis.size() - 1], vecAxis[vecAxis.size() - 2]);
+                }
+            }
+        } // At this point we have the gradient that comes from the axis where the point belongs to
+
+        std::vector<glm::vec2> newPointsForThisAxis;
+
+        // Check if the new point is inside the polygon
+        // We are going to use lineToLineIntersectionCoef from the Geometry package
+        float t1, t2;
+
+        for (int i = 0; i < sketchPoints.size(); i++) {
+            glm::vec2 a = sketchPoints[i];
+            glm::vec2 b = sketchPoints[(i + 1) % sketchPoints.size()];
+            Geometry::lineToLineIntersectionCoef(pointToAdd, gradient, a, b - a, t1, t2);
+            if (t2 > 0.0f && t2 < 1.0f) {
+                // We have an intersection
+                // We need to find the intersection point
+                glm::vec2 intersectionPoint = a + t2 * (b - a);
+                newPointsForThisAxis.push_back(intersectionPoint);
+            }
+        }
+
+        // as for now
+        int numberOfPointsToAdd = int(t1/stepSize) - 1;
+        for (int i = 0; i < numberOfPointsToAdd; i++) {
+            glm::vec2 newPoint = pointToAdd + float(i) * gradient * stepSize;
+            newPointsForThisAxis.push_back(newPoint);
+        }
+        newAxis.push_back(newPointsForThisAxis);
+    }
+
+    // The last step is to add all this axis to medial axis and medial axis gen
+
 }
