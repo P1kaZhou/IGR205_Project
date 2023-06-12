@@ -111,8 +111,9 @@ std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxisGenerator 
     return normalChordalAxes;
 }
 
+//TODO: make sure the operations are done in the right order, signature something as well
 void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, float threshold,
-                                             std::vector<glm::uvec3> &triangles,
+                                             ConstrainedDelaunayTriangulation2D &cdt,
                                              std::vector<glm::vec2> sketchPoints) {
     MedialAxis & medialAxis = medialAxisG.getMedialAxis();
     // The threshold represents the ratio of morphological significance, p/AB
@@ -129,6 +130,7 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
     // From this point onward, we iterate through the axis and compute their ratio of morphological significance
     std::vector<glm::uvec3> trianglesToRemove;
     std::set<glm::vec2> pointsToAdd;
+    std::vector<glm::uvec3> junctionTriangles = computeJunctionTriangles(cdt);
     for (auto axis: externalAxis) {
         // Get the first and the last element
         glm::vec2 firstPoint = axis[0];
@@ -138,7 +140,9 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
         glm::uvec2 triangleEdge;
         bool isLastPointClosest = true;
         glm::uvec3 triangleToRemove;
-        for (auto triangle: triangles) {
+        //TODO: it's not the delaunay triangles, only the junction triangles
+
+        for (auto triangle: junctionTriangles) {
             // as the chordal points are based from the middle of the triangle edges, we proceed this way
             unsigned a = triangle[0];
             unsigned b = triangle[1];
@@ -229,14 +233,14 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
 
     // Remove the triangles
     for (auto triangle: trianglesToRemove) {
-        triangles.erase(std::remove(triangles.begin(),
-                                    triangles.end(), triangle), triangles.end());
+        // Remove the triangles
     }
 
-    extendAxis(medialAxisG, pointsToAdd, sketchPoints);
+    // extendAxis(medialAxisG, pointsToAdd, sketchPoints);
 
 }
 
+// TODO: either modify this or use the resources provided by Ghislain
 std::vector<glm::uvec3> smoothing::computeJunctionTriangles(ConstrainedDelaunayTriangulation2D &cdt) {
     std::vector<Geometry::Edge> &edges = cdt.getEdges();
     std::vector<glm::uvec3> &triangles = cdt.getTriangles();
