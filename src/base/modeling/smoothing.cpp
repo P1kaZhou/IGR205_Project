@@ -30,10 +30,10 @@ void smoothing::applyLaplacianToMedial(MedialAxis &medialAxis, int iterations) {
 
 std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxis &medialAxis,
                                                             ConstrainedDelaunayTriangulation2D &cdt,
-                                                            std::vector<glm::vec2> sketchPoints) {
+                                                            std::vector<glm::vec2> &sketchPoints) {
     // There may actually be no need for the triangles, I can just go through the chordal axis and create a normal segment
     std::vector<MedialAxisPoint *> points = medialAxis.getPoints();
-    std::vector<glm::uvec3> triangles = cdt->getTriangles();
+    std::vector<glm::uvec3> triangles = cdt.getTriangles();
 
     std::vector<glm::uvec2> normalChordalAxes; // The axes are determines by two points from the sketchpoints
 
@@ -108,8 +108,8 @@ std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxis &medialAx
     return normalChordalAxes;
 }
 
-void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, float threshold,
-                                             std::vector<glm::uvec3> triangles,
+void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, MedialAxis &medialAxis, float threshold,
+                                             std::vector<glm::uvec3> &triangles,
                                              std::vector<glm::vec2> sketchPoints) {
     // TODO: apply Prasad criteria
     // The threshold represents the ratio of morphological significance, p/AB
@@ -122,39 +122,105 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
     // 3. Should the ratio be below the threshold, remove the candidate
 
     // At this point it'd probably be better to remove the triangles immediately, followed by the chordal axis extension
-
-
-
-    /* Realized it was not useful
-    // STEP 1: get the candidates
-    std::vector<MedialAxisPoint *> points = medialAxis.getPoints();
-    std::map<int, int> candidates; // indexes of beginning and end of candidate axis
-
-
-    int n = points.size();
-    for (int i = 0; i < n ; i++){
-        MedialAxisPoint * axisPoint = points[i];
-        std::vector<MedialAxisPoint *> neighbors = axisPoint->getAdjs();
-        if (neighbors.size() == 1){
-            MedialAxisPoint * myFirstPoint = axisPoint;
-            MedialAxisPoint * mySecondPoint = neighbors[0];
-            while (mySecondPoint->getAdjs().size() == 2){
-                std::vector<MedialAxisPoint *> mySecondPointNeighbors = mySecondPoint->getAdjs();
-                if (mySecondPointNeighbors[0] == myFirstPoint){
-                    mySecondPoint = mySecondPointNeighbors[1];
-                } else {
-                    mySecondPoint = mySecondPointNeighbors[0];
+    std::vector<std::vector<glm::vec2>> externalAxis = medialAxisG.extractExternalAxis();
+    // From this point onward, we iterate through the axis and compute their ratio of morphological significance
+    std::vector<glm::uvec3> trianglesToRemove;
+    for (auto axis: externalAxis) {
+        // Get the first and the last element
+        glm::vec2 firstPoint = axis[0];
+        glm::vec2 lastPoint = axis[axis.size() - 1];
+        // Get the closest junction point
+        float minDistance = std::numeric_limits<float>::max();
+        glm::uvec2 triangleEdge;
+        bool isLastPointClosest = true;
+        glm::uvec3 triangleToRemove;
+        for (auto triangle: triangles) {
+            // as the chordal points are based from the middle of the triangle edges, we proceed this way
+            unsigned a = triangle[0];
+            unsigned b = triangle[1];
+            unsigned c = triangle[2];
+            glm::vec2 middlePointAB = (sketchPoints[a] + sketchPoints[b]) / 2.0f;
+            glm::vec2 middlePointBC = (sketchPoints[b] + sketchPoints[c]) / 2.0f;
+            glm::vec2 middlePointCA = (sketchPoints[c] + sketchPoints[a]) / 2.0f;
+            float distanceAB1 = glm::distance(firstPoint, middlePointAB);
+            float distanceBC1 = glm::distance(firstPoint, middlePointBC);
+            float distanceCA1 = glm::distance(firstPoint, middlePointCA);
+            float distanceAB2 = glm::distance(lastPoint, middlePointAB);
+            float distanceBC2 = glm::distance(lastPoint, middlePointBC);
+            float distanceCA2 = glm::distance(lastPoint, middlePointCA);
+            if (distanceAB1 < minDistance) {
+                minDistance = distanceAB1;
+                triangleEdge = glm::uvec2(a, b);
+                bool isLastPointClosest = false;
+                triangleToRemove = triangle;
+            }
+            if (distanceBC1 < minDistance) {
+                minDistance = distanceBC1;
+                triangleEdge = glm::uvec2(b, c);
+                bool isLastPointClosest = false;
+                triangleToRemove = triangle;
+            }
+            if (distanceCA1 < minDistance) {
+                minDistance = distanceCA1;
+                triangleEdge = glm::uvec2(c, a);
+                bool isLastPointClosest = false;
+                triangleToRemove = triangle;
+            }
+            if (distanceAB2 < minDistance) {
+                minDistance = distanceAB2;
+                triangleEdge = glm::uvec2(a, b);
+                bool isLastPointClosest = true;
+                triangleToRemove = triangle;
+            }
+            if (distanceBC2 < minDistance) {
+                minDistance = distanceBC2;
+                triangleEdge = glm::uvec2(b, c);
+                bool isLastPointClosest = true;
+                triangleToRemove = triangle;
+            }
+            if (distanceCA2 < minDistance) {
+                minDistance = distanceCA2;
+                triangleEdge = glm::uvec2(c, a);
+                bool isLastPointClosest = true;
+                triangleToRemove = triangle;
+            }
+        } // Iteration over the triangles ends here
+        trianglesToRemove.push_back(triangleToRemove);
+        const float CLOSE_ENOUGH = 0.5f; // Something small is relevant considering they should "perfectly match"
+        if (minDistance < CLOSE_ENOUGH) {
+            // Compute the ratio of morphological significance
+            float morpho = glm::distance(firstPoint, lastPoint) /
+                           glm::distance(sketchPoints[triangleEdge[0]], sketchPoints[triangleEdge[1]]);
+            if (morpho < threshold) {
+                // Courtesy of Ghislain
+                unsigned i = 0;
+                for (auto a: axis) {
+                    if (i < axis.size() - 1) {
+                        medialAxis.removePoint(a);
+                    }
+                    i++;
                 }
             }
         }
     }
-    */
+
+    // Once all axis are deleted, we shall proceed to the triangle deletion as well as the chordal axis extension
+    // The triangle deletion is straightforward considering we have the list of triangles to remove, and the triangles
+    // are passed by reference
+    // For the chordal axis extension, for the deleted axes, we first check if they have a common "kept" neighbor
+    // (hence the `isLastPointClosest` boolean, although it still needs to be applied), this is to avoid duplicates
+    // Then we get the general direction of the "internal" axis that stops at the kept neighbor, and we extend it until
+    // it reaches one sketchpoint. The step size should be the same as what separates the points in the medial axis
+
+    // We can estimate the number of points to add by computing the distance between the kept neighbor and the
+    // farthest sketchpoint following the general direction of the internal axis, and dividing it by the step size
+
 
 }
 
 std::vector<glm::uvec3> smoothing::computeJunctionTriangles(ConstrainedDelaunayTriangulation2D &cdt) {
-    std::vector<Geometry::Edge> &edges = cdt->getEdges();
-    std::vector<glm::uvec3> &triangles = cdt->getTriangles();
+    std::vector<Geometry::Edge> &edges = cdt.getEdges();
+    std::vector<glm::uvec3> &triangles = cdt.getTriangles();
 
     std::vector<glm::uvec3> junctionTriangles;
 

@@ -11,6 +11,7 @@
 #include "medial-axis.hpp"
 #include "medial-axis-generator.hpp"
 #include "delaunay.hpp"
+#include <numeric>
 
 class smoothing {
 
@@ -24,8 +25,8 @@ public:
 
     void applyLaplacianToMedial(MedialAxis &medialAxis, int iterations);
 
-    void insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, float threshold, std::vector<glm::uvec3> triangles,
-                                      std::vector<glm::vec2> sketchPoints);
+    void insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, MedialAxis &medialAxis, float threshold,
+                                      std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> sketchPoints);
 
     std::vector<glm::uvec2> computeNormalChordalAxes(MedialAxis &medialAxis, ConstrainedDelaunayTriangulation2D &cdt,
                                                      std::vector<glm::vec2> &points);
