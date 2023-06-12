@@ -78,6 +78,8 @@ public:
 private:
     const SkeletonJoint & a;
     const SkeletonJoint & b;
+
+    
 };
 
 #endif

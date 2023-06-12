@@ -26,6 +26,8 @@
 
 #include <geometry/draw-2d.hpp>
 
+#include <modeling/smoothing.hpp>
+
 
 Renderer * renderer = nullptr;
 Mesh * selectedMesh = nullptr;
@@ -259,21 +261,22 @@ ControllerMode controllerMode = ControllerMode::NONE;
 
 bool drawing_render_3d = false;
 
-int im_resolution_w = 400;
-int im_resolution_h = 400;
+int im_resolution_w = 200;
+int im_resolution_h = 200;
 
 glm::vec3 chordColor = {0, 200, 0};
-glm::vec3 axisColor = {255, 255, 255};
-glm::vec3 axisPointColor = {0, 20, 255};
+glm::vec3 axisColor = {0, 200, 200};
+glm::vec3 axisPointColor = {0, 20, 200};
 glm::vec3 shapeColor = {150, 0, 0};
-glm::vec3 shapePointColor = {0, 0, 200};
-glm::vec3 skeletonPointColor = {255, 0, 0};
-glm::vec3 skeletonColor0 = {100, 0, 0};
-glm::vec3 skeletonColor1 = {0, 100, 0};
-glm::vec3 skeletonColor2 = {0, 0, 100};
+glm::vec3 shapePointColor = {0, 0, 220};
+glm::vec3 skeletonPointColor = {200, 200, 0};
+glm::vec3 skeletonColor0 = {200, 0, 0};
+glm::vec3 skeletonColor1 = {0, 200, 0};
+glm::vec3 skeletonColor2 = {0, 0, 200};
 
 glm::vec3 cylinderMeshColor = {0, 100, 100};
-glm::vec3 skeletonMeshColor = {50, 200, 50};
+glm::vec3 skeletonMeshColor = {0, 250, 0};
+glm::vec3 skeletonMeshColorHighLight = {255, 255, 255};
 
 Mesh * skeletonMesh = nullptr;
 Mesh * generatedMesh = nullptr;
@@ -281,6 +284,8 @@ Mesh * generatedMesh = nullptr;
 float cdp_threshold = 0.5;
 float importanceCylindricalError = 1.0f;
 float importanceDistanceError = 1.0f;
+
+float pruning__threshold = 1.0f;
 
 int ma_prun_depth = 3;
 int ma_prun_count = 3;
@@ -293,6 +298,9 @@ int smooth_mask_size = 2;
 
 int bones_count = 0;
 int focus_bone_index = 0;
+
+bool show_skeleton = true;
+bool show_mesh = true;
 
 void testPipeline(
   Shape shape
@@ -318,10 +326,16 @@ void testPipeline(
   auto midPoints = medial.computeMidPoints();
   for(unsigned i=0; i<3; i++){
     if(i==1) {
-      for(int ii=1; ii<=ma_prun_count; ii++) {
-        // medial.pruning(ma_prun_depth*(ii/ma_prun_count));
-        medial.pruning(ma_prun_depth);
-      }
+      // for(int ii=1; ii<=ma_prun_count; ii++) {
+      //   // medial.pruning(ma_prun_depth*(ii/ma_prun_count));
+      //   medial.pruning(ma_prun_depth);
+      // }
+
+      smoothing s;
+      s.insignificantBranchesRemoval(
+        medial, pruning__threshold, triangles, shape.getSubSampledPoints()
+      );
+
     }
     if(i==2) {
       medial.smooth(smooth_mask_size);
@@ -349,6 +363,7 @@ void testPipeline(
     if(i==1) builder.save("02-medial-axis-pruning.ppm");
     if(i==2) builder.save("02-medial-axis-pruning-smoothed.ppm");
   }
+
   // External axis of the medial axis tree
   auto externalAxis = medial.extractExternalAxis();
   {
@@ -386,7 +401,7 @@ void testPipeline(
   {
     Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
     builder.setExtraPoints(shape.getFullPoints());
-    builder.drawEdges(shape.getFullPoints(), optiChords, axisColor);
+    builder.drawEdges(shape.getFullPoints(), optiChords, chordColor);
 
     for(auto ax : externalAxis) {
       builder.drawShape(false, ax, axisColor);
@@ -467,20 +482,33 @@ void testPipeline(
   if(generatedMesh!=nullptr) {
     renderer->removeRenderable(generatedMesh);
   }
-  generatedMesh = new Mesh(
-    new MeshGeometry(meshVertices, meshFaces, meshColors),
-    // MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.01f, cylinderMeshColor*0.001f, 1)
-    MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.0f, cylinderMeshColor*0.0f, 1)
-  );
-  renderer->addRenderable(generatedMesh);
+  if(show_mesh) {
+    if(show_skeleton) {
+      generatedMesh = new Mesh(
+        new MeshGeometry(meshVertices, meshFaces, meshColors),
+        MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.0f, cylinderMeshColor*0.0f, 1)
+      );
+    }
+    else {
+      generatedMesh = new Mesh(
+        new MeshGeometry(meshVertices, meshFaces),
+        MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.01f, cylinderMeshColor*0.001f, 1)
+      );
+    }
+    renderer->addRenderable(generatedMesh);
+  }
 
   if(skeletonMesh!=nullptr) {
     renderer->removeRenderable(skeletonMesh);
   }
-  skeletonMesh = RiggingMesh::createRiggingSkeletonMesh(
-    skelGen.getRigging(), skeletonMeshColor
-  );
-  renderer->addRenderable(skeletonMesh);
+  if(show_skeleton) {
+    skeletonMesh = RiggingMesh::createRiggingSkeletonMesh(
+      skelGen.getRigging(), focus_bone_index, skeletonMeshColor, skeletonMeshColorHighLight
+    );
+    skeletonMesh->setDepthTest(false);
+    renderer->addRenderable(skeletonMesh);
+  }
+
 
   {
     std::vector<std::pair<glm::vec2, glm::vec2>> bones2D;
@@ -561,6 +589,7 @@ void renderImGui() {
     ImGui::SliderFloat("CDP d error", &importanceDistanceError, 0.0f, 1.0f);
     ImGui::SliderInt("prunning thresh", &ma_prun_depth, 3, 60);
     ImGui::SliderInt("nbr of prunning", &ma_prun_count, 1, 10);
+    ImGui::SliderFloat("PRUNING threshold", &pruning__threshold, 0.0f, 1.0f);
     ImGui::SliderInt("sub sampling", &sub_sampling, 1, 50);
     ImGui::SliderInt("cylinder sampling", &cylinder_sampling, 1, 100);
     ImGui::SliderInt("smooth mask size", &smooth_mask_size, 1, 10);
@@ -580,6 +609,9 @@ void renderImGui() {
       Shape shape(sub_sampling, points);
       testPipeline(shape);
     }
+
+    ImGui::Checkbox("Show skeleton", &show_skeleton);
+    ImGui::Checkbox("Show mesh", &show_mesh);
 
     // if (controllerMode == FPS) { ImGui::Text("FPS"); }
     // if (controllerMode == CAM) { ImGui::Text("CAM"); }

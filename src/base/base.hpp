@@ -43,11 +43,15 @@ public:
   inline void setHighLightable(bool v) { isHighlightable = v;}
   inline bool getIsHighLightable() const { return isHighlightable; }
 
+  inline bool setDepthTest(bool v) {withDepthTest=v;}
+  inline bool depthTest() {return withDepthTest;}
+
   std::string name;
 
 private:
   bool isHighlighted = false;
-  bool isHighlightable = true;  
+  bool isHighlightable = true;
+  bool withDepthTest = true;
 };
 
 /*

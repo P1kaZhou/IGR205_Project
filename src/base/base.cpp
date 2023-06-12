@@ -157,8 +157,12 @@ void Renderer::render() {
   }
   glUseProgram(phongProgram);
   for (unsigned i = 0; i < renderables.size(); i++) {
+      if(!renderables[i]->depthTest()) {
+        glDisable(GL_DEPTH_TEST);
+      }
       auto m = renderables[i];
       if(!m->isHighlightable || !m->isHighlighted) m->render(*this, phongProgram);
+      glEnable(GL_DEPTH_TEST);
   }
   
   // Fill stencil buffer with ones for highlighted objects

@@ -64,6 +64,14 @@ public:
     ): width(width), height(height) {
         pixels = new float[height*width*3];
         memset(pixels, 0, height*width*3*sizeof(float));
+
+        for(int i=0; i<height; ++i) {
+            for(int j=0; j<width; ++j) {
+                pixels[i*width*3+j*3] = 255;
+                pixels[i*width*3+j*3+1] = 255;
+                pixels[i*width*3+j*3+2] = 255;
+            }
+        }
     }
 
     ~DrawBuilder() {
