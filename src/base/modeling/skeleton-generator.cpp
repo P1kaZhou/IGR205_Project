@@ -25,15 +25,19 @@ void SkeletonGenerator::compute() {
         if(skelAxis.size() >= 2) {
             // We link the junction triangle point to the reste of the axis
             // in the skeleton
-            glm::vec2 & junctionTrianglePoint = skelAxis[skelAxis.size()-1];
-            glm::vec2 & junctionTriangleLinkPoint = skelAxis[skelAxis.size()-2];
-            unsigned junctionTriangleJointId = rigging.addJoint(
-                glm::vec3(junctionTrianglePoint, 0));
-            unsigned linkPointJointId = rigging.addJoint(
-                glm::vec3(junctionTriangleLinkPoint, 0));
 
-            showVec(junctionTrianglePoint, "junctionTrianglePoint");
-            showVec(junctionTriangleLinkPoint, "junctionTriangleLinkPoint");
+            const glm::vec2 junctionTrianglePoint = skelAxis[skelAxis.size()-1];
+            const glm::vec2 junctionTriangleLinkPoint = skelAxis[skelAxis.size()-2];
+            unsigned junctionTriangleJointId = rigging.addJoint(
+                glm::vec3(junctionTrianglePoint, 0.0f));
+            unsigned linkPointJointId = rigging.addJoint(
+                glm::vec3(junctionTriangleLinkPoint, 0.0f));
+
+            std::vector<glm::vec2> jAxis;
+            jAxis.push_back(junctionTrianglePoint);
+            jAxis.push_back(junctionTriangleLinkPoint);
+            junctionAxisSkeleton.push_back(jAxis);
+            
             rigging.addBone(junctionTriangleJointId, linkPointJointId);
 
             junctionPoints.push_back({junctionTrianglePoint, junctionTriangleJointId});
@@ -47,7 +51,7 @@ void SkeletonGenerator::compute() {
     // Douglas-Peucker Algorithm for external axis
     CDP cdp(points, externalAxis, chords, cdpThreshold);
     cdp.compute();
-    std::vector<std::vector<glm::vec2>> externalAxisSkeleton = cdp.getSkeleton();
+    externalAxisSkeleton = cdp.getSkeleton();
 
     // Add cylinders skeleton to final skeleton
     for(auto skelAxis : externalAxisSkeleton) {
@@ -68,6 +72,12 @@ void SkeletonGenerator::compute() {
     for(auto axis : internalAxis) {
         const glm::vec2 & junctionTrianglePointStart = axis.front();
         const glm::vec2 & junctionTrianglePointEnd = axis.back();
+
+        std::vector<glm::vec2> curAxis;
+        curAxis.push_back(junctionTrianglePointStart);
+        curAxis.push_back(junctionTrianglePointEnd);
+        internalAxisSkeleton.push_back(curAxis);
+
         unsigned junctionTriangleJointStartID;
         unsigned junctionTriangleJointEndID;
         if(findIdForKey(junctionPoints, junctionTrianglePointStart, junctionTriangleJointStartID)) {

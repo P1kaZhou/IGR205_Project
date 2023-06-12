@@ -3,7 +3,6 @@
 void CDP::compute() {
     skeleton.clear();
     for(auto ax : axis) {
-        std::cout << "CDP" << std::endl;
         auto skel = std::vector<glm::vec2>();
 
         skel.push_back(*ax.begin());
@@ -22,7 +21,6 @@ void CDP::computeSingleAxisSkeleton(
     std::vector<glm::vec2>::iterator end,
     std::vector<glm::vec2> & skeleton
 ){
-    std::cout << "CDP axis" << std::endl;
     if(start == end) return;
 
     auto cur = start+1;
@@ -42,7 +40,6 @@ void CDP::computeSingleAxisSkeleton(
     }
 
     if(haveSplit) {
-        std::cout << "end" << std::endl;
         computeSingleAxisSkeleton(axi, start, split, skeleton);
         skeleton.push_back(*split);
         computeSingleAxisSkeleton(axi, split, end, skeleton);

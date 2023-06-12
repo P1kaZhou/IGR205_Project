@@ -66,6 +66,8 @@ target_sources(
   base/modeling/cylinder-generator.cpp
   base/modeling/rigging.cpp
   base/modeling/skeleton-generator.cpp
+  base/modeling/skining-generator.cpp
+  base/modeling/mesh-generator.cpp
 
   dep/imgui/imgui.cpp
   dep/imgui/imgui_draw.cpp

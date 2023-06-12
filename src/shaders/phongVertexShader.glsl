@@ -14,12 +14,19 @@ out FRAG {
 
 uniform mat4 viewMat, projMat, worldMat;
 
+
+// // By vertices transform
+// uniform mat4 transform;
+// uniform sampler2D vertexTransformCoef;
+
 void main() {
     frag.fcolor = vColor;
     frag.normal = ( worldMat * vec4(vNormal, 0.0) ).xyz;
     // frag.normal = vNormal;
     frag.texCoord = vTexCoord;
     frag.pos = ( worldMat * vec4(vPosition, 1.0) ).xyz;
+
+    // texture(diffuseMap, frag.texCoord).rgb;
 
     gl_Position = projMat * viewMat * worldMat * vec4(vPosition, 1.0);
 }

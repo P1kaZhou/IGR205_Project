@@ -19,13 +19,26 @@ public:
         vertexSkinWeights[vertexIndice] = weight;
     }
 
+    inline std::map<unsigned, float> & getVertexSkinWeights() { return vertexSkinWeights; }
+
 private:
     std::map<unsigned, float> vertexSkinWeights;
 };
 
 class Rigging {
 public:
-    Rigging() {}
+    Rigging(unsigned expectedJointCount=100, unsigned expectedBonesCount=100) {
+        /*
+        Because of reallocation of the vectors,
+        the references to the joints holded by the bones can become invalid.
+        That is why I reserve a significant amount of memory to avoir realloc.
+        Proper solutions : 
+        - Use a std::list to avoir reallocation
+        - Use a std::vector of pointers and dynamically allocate joints at creation.
+        */
+        joints.reserve(expectedJointCount);
+        bones.reserve(expectedBonesCount);
+    }
 
     // SKELETON
 
@@ -34,16 +47,17 @@ public:
     Returns the id of the new joint.
     */
     inline unsigned addJoint(const glm::vec3 & point) {
-        joints.emplace_back(point);
+        joints.push_back(SkeletonJoint(point));
         lastID += 1;
         joints.back().id = lastID;
         return lastID;
     }
 
     inline void addBone(unsigned jointAId, unsigned jointBId) {
-        bones.emplace_back(
+        bones.push_back(SkeletonBone(
             getJointById(jointAId),
-            getJointById(jointBId));
+            getJointById(jointBId)
+        ));
     }
 
     inline SkeletonJoint & getJointOnRay(const glm::vec3 & direction, const glm::vec3 & startPos) {
@@ -55,8 +69,8 @@ public:
     }
 
     inline SkeletonJoint & getJointById(unsigned id) {
-        for(auto it=joints.begin(); it!=joints.end(); it++) {
-            if(it->id == id) return *it;
+        for(auto & joint : joints) {
+            if(joint.id == id) return joint;
         }
         std::cerr << "Unknown skeleton joint ID " << id << std::endl;
         assert(false);
@@ -76,7 +90,8 @@ public:
     inline void initSkinning(
         unsigned verticesCount
     ) {
-        bonesSkins.resize(verticesCount, SkinningGroup(verticesCount));
+        auto bonesCount = bones.size();
+        bonesSkins.resize(bonesCount, SkinningGroup(verticesCount));
         this->verticesCount = verticesCount;
     }
 
@@ -92,6 +107,7 @@ public:
 
     inline const std::vector<SkeletonBone> & getBones() const { return bones; }
     inline const std::vector<SkeletonJoint> & getJoints() const { return joints; }
+    inline std::vector<SkinningGroup> & getBonesSkins() { return bonesSkins; }
 
 private:
     std::vector<SkeletonJoint> joints;

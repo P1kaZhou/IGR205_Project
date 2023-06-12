@@ -26,7 +26,17 @@ public:
 
     void compute();
 
-    inline const Rigging & getRigging() const { return rigging; }
+    inline Rigging & getRigging() { return rigging; }
+
+    inline const std::vector<std::vector<glm::vec2>> & getExternalAxisSkeleton() {
+        return externalAxisSkeleton;
+    }
+    inline const std::vector<std::vector<glm::vec2>> & getInternalAxisSkeleton() {
+        return internalAxisSkeleton;
+    }
+    inline const std::vector<std::vector<glm::vec2>> & getJunctionAxisSkeleton() {
+        return junctionAxisSkeleton;
+    }
 
 private:
     const std::vector<glm::vec2> & points;
@@ -38,6 +48,10 @@ private:
 
     std::vector<std::vector<glm::vec2>> externalAxis;
     std::vector<std::vector<glm::vec2>> internalAxis;
+
+    std::vector<std::vector<glm::vec2>> externalAxisSkeleton;
+    std::vector<std::vector<glm::vec2>> internalAxisSkeleton;
+    std::vector<std::vector<glm::vec2>> junctionAxisSkeleton;
 
     Rigging rigging;
 

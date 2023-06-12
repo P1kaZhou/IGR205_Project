@@ -71,7 +71,11 @@ protected:
   int width = 0;
   int height = 0;
 
+  bool withFaceCull = true;
+
 public:
+
+  inline void faceCulling(bool v) { withFaceCull = v; }
 
   inline Camera & getCamera() { return g_camera; }
   inline GLFWwindow * getWindow() { return g_window; }
@@ -94,6 +98,20 @@ public:
   }
 
   inline void addRenderable(Renderable * r) { renderables.push_back(r); }
+  inline void removeRenderable(Renderable * r) {
+    unsigned index = 0;
+    bool found = false;
+    for(unsigned i=0; i<renderables.size() && !found; i++) {
+      if(renderables[i]==r) {
+        index = i;
+        found = true;
+      }
+    }
+    if(found) {
+      renderables.erase(renderables.begin()+index);
+      delete r;
+    }
+  }
   inline void addLight(Light * l) { lights.push_back(l); }
   inline const std::vector<Renderable*> & getRenderables() { return renderables; }
   inline const std::vector<Light*> & getLights() { return lights; }

@@ -3,13 +3,16 @@
 #include <CDT.h>
 
 void ConstrainedDelaunayTriangulation2D::constrainedDelaunayWithCDT(
-  const std::vector<glm::vec2> & points
+  const std::vector<glm::vec2> & points,
+  bool constraints
 ) {
   std::vector<glm::uvec2> constraint;
-  for(unsigned i=0; i<points.size(); i++) {
-    constraint.push_back({
-      i, (i+1)%points.size()
-    });
+  if(constraints) {
+    for(unsigned i=0; i<points.size(); i++) {
+      constraint.push_back({
+        i, (i+1)%points.size()
+      });
+    }
   }
 
   CDT::Triangulation<float> cdt;
@@ -19,15 +22,17 @@ void ConstrainedDelaunayTriangulation2D::constrainedDelaunayWithCDT(
     [](const glm::vec2 & p){ return p.x; },
     [](const glm::vec2 & p){ return p.y; }
   );
-  cdt.insertEdges(
-    constraint.begin(),
-    constraint.end(),
-    [](const glm::uvec2 & p){ return p.x; },
-    [](const glm::uvec2 & p){ return p.y; }
-  );
+  if(constraints) {
+    cdt.insertEdges(
+      constraint.begin(),
+      constraint.end(),
+      [](const glm::uvec2 & p){ return p.x; },
+      [](const glm::uvec2 & p){ return p.y; }
+    );
+  }
 
   // cdt.eraseSuperTriangle();
-  cdt.eraseOuterTriangles();
+  if(constraints) cdt.eraseOuterTriangles();
   // cdt.eraseOuterTrianglesAndHoles();
   for(auto f : cdt.triangles) {
     triangles.emplace_back(f.vertices[0], f.vertices[1], f.vertices[2]);

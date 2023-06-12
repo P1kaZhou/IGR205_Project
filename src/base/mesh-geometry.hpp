@@ -19,6 +19,15 @@ public:
         recomputeVertexNormals();
     }
 
+    MeshGeometry(
+        std::vector<glm::vec3> & vertexPositions,
+        std::vector<glm::uvec3> & faces,
+        std::vector<glm::vec3> & vertexColors
+    ): vertexPositions(vertexPositions), faces(faces), vertexColors(vertexColors) {
+        boundingBox = Geometry::BoundingBox::computeBoundingBox(vertexPositions);
+        recomputeVertexNormals();
+    }
+
     static MeshGeometry * meshGetTriangleData(float width, float height, const glm::vec3 * color);
     static MeshGeometry * meshGetPlaneData(float width, float height, const glm::vec3 * color);
     static MeshGeometry * meshGetCubeData(float lx, float ly, float lz, const glm::vec3 * color);
@@ -66,6 +75,11 @@ public:
 
     void normalizeVertexPositions();
 
+
+    void initVerticesTranforms(
+        std::vector<glm::mat4> & vertexTransforms
+    );
+
 private:
     std::vector<glm::vec3> vertexPositions;
     std::vector<glm::vec3> vertexNormals;
@@ -74,6 +88,9 @@ private:
     std::vector<glm::uvec3> faces;
 
     Geometry::BoundingBox::BoundingBox boundingBox;
+
+    std::vector<glm::mat4> vertexTransforms;
+    float * vertexTransformCoefs;
 };
 
 #endif

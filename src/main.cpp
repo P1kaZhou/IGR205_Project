@@ -5,6 +5,7 @@
 #include <camera-controller.hpp>
 
 #include <drawing.hpp>
+#include <modeling/shape.hpp>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -16,6 +17,10 @@
 #include <modeling/cylindrical-douglas-peucker.hpp>
 #include <modeling/cylinder-generator.hpp>
 #include <modeling/skeleton-generator.hpp>
+#include <modeling/rigging.hpp>
+#include <modeling/skining-generator.hpp>
+#include <modeling/chords-generator.hpp>
+#include <modeling/mesh-generator.hpp>
 
 #include <modeling/rigging-mesh.hpp>
 
@@ -26,8 +31,6 @@ Renderer * renderer = nullptr;
 Mesh * selectedMesh = nullptr;
 CameraController * camController;
 Drawing * drawing;
-
-Mesh * generatedMesh = nullptr;
 
 void errorCallback(int error, const char *desc) {
   std::cout <<  "Error " << error << ": " << desc << std::endl;
@@ -252,7 +255,7 @@ bool show_demo_window = true;
 bool show_another_window = false;
 ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-ControllerMode controllerMode = ControllerMode::FPS;
+ControllerMode controllerMode = ControllerMode::NONE;
 
 bool drawing_render_3d = false;
 
@@ -261,46 +264,67 @@ int im_resolution_h = 400;
 
 glm::vec3 chordColor = {0, 200, 0};
 glm::vec3 axisColor = {255, 255, 255};
-glm::vec3 axisPointColor = {0, 200, 200};
+glm::vec3 axisPointColor = {0, 20, 255};
 glm::vec3 shapeColor = {150, 0, 0};
 glm::vec3 shapePointColor = {0, 0, 200};
 glm::vec3 skeletonPointColor = {255, 0, 0};
-glm::vec3 skeletonColor = {255, 255, 255};
+glm::vec3 skeletonColor0 = {100, 0, 0};
+glm::vec3 skeletonColor1 = {0, 100, 0};
+glm::vec3 skeletonColor2 = {0, 0, 100};
+
+glm::vec3 cylinderMeshColor = {0, 100, 100};
+glm::vec3 skeletonMeshColor = {50, 200, 50};
+
+Mesh * skeletonMesh = nullptr;
+Mesh * generatedMesh = nullptr;
 
 float cdp_threshold = 0.5;
 float importanceCylindricalError = 1.0f;
 float importanceDistanceError = 1.0f;
 
-int ma_prun_depth = 15;
+int ma_prun_depth = 3;
 int ma_prun_count = 3;
 
+int sub_sampling = 20;
+
+int cylinder_sampling = 20;
+
+int smooth_mask_size = 2;
+
+int bones_count = 0;
+int focus_bone_index = 0;
+
 void testPipeline(
-  std::vector<glm::vec2> & points
+  Shape shape
 ) {
 
-
   // Delaunay constrained triangulation
-  ConstrainedDelaunayTriangulation2D d(points);
-  auto triangles = d.getTriangles();
-  auto chords = d.getEdges();
+  ConstrainedDelaunayTriangulation2D d(shape.getSubSampledPoints());
+  auto trianglesSub = d.getTriangles();
+  auto chordsSub = d.getEdges();
+  auto triangles = shape.convertToFullTriangleSet(trianglesSub);
+  auto chords = shape.convertToFullEdgeSet(chordsSub);
   {
     Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-    builder.drawTriangles(points, triangles, chordColor);
-    builder.drawShape(true, points, shapeColor);
-    builder.drawPoints(points, shapePointColor);
+    builder.drawTriangles(shape.getFullPoints(), triangles, chordColor);
+    builder.drawShape(true, shape.getFullPoints(), shapeColor);
+    builder.drawPoints(shape.getFullPoints(), shapePointColor);
     builder.save("01-delaunay.ppm");
   }
 
   // The raw medial axis
-  MedialAxisGenerator medial(points, triangles);
+  MedialAxisGenerator medial(shape.getSubSampledPoints(), trianglesSub);
   // medial.compute();
   auto midPoints = medial.computeMidPoints();
-  for(unsigned i=0; i<2; i++){
+  for(unsigned i=0; i<3; i++){
     if(i==1) {
       for(int ii=1; ii<=ma_prun_count; ii++) {
         // medial.pruning(ma_prun_depth*(ii/ma_prun_count));
         medial.pruning(ma_prun_depth);
       }
+    }
+    if(i==2) {
+      medial.smooth(smooth_mask_size);
     }
     auto axis = medial.getMedialAxis();
     std::vector<std::pair<glm::vec2, glm::vec2>> segments;
@@ -315,86 +339,194 @@ void testPipeline(
         pointsSeg.push_back(seg.second);
     }
     Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-    builder.addExtraPoints(points);
+    builder.addExtraPoints(shape.getFullPoints());
     builder.addExtraPoints(pointsSeg);
     builder.drawSegments(segments, axisColor);
     builder.drawPoints(pointsSeg, axisPointColor);
-    builder.drawShape(true, points, shapeColor);
-    builder.drawPoints(points, shapePointColor);
+    builder.drawShape(true, shape.getFullPoints(), shapeColor);
+    builder.drawPoints(shape.getFullPoints(), shapePointColor);
     if(i==0) builder.save("02-medial-axis.ppm");
     if(i==1) builder.save("02-medial-axis-pruning.ppm");
+    if(i==2) builder.save("02-medial-axis-pruning-smoothed.ppm");
   }
   // External axis of the medial axis tree
   auto externalAxis = medial.extractExternalAxis();
   {
     Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-    builder.setExtraPoints(points);
+    builder.setExtraPoints(shape.getFullPoints());
     for(auto ax : externalAxis) {
       builder.drawShape(false, ax, axisColor);
       builder.drawPoints(ax, axisPointColor);
     }
-    builder.drawShape(true, points, shapeColor);
-    builder.drawPoints(points, shapePointColor);
+    builder.drawShape(true, shape.getFullPoints(), shapeColor);
+    builder.drawPoints(shape.getFullPoints(), shapePointColor);
     builder.save("03-external-medial-axis.ppm");
   }
   // Internal axis of the medial axis tree
   auto internalAxis = medial.extractInternalAxis();
   {
     Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-    builder.setExtraPoints(points);
+    builder.setExtraPoints(shape.getFullPoints());
     for(auto ax : internalAxis) {
       builder.drawShape(false, ax, axisColor);
       builder.drawPoints(ax, axisPointColor);
     }
-    builder.drawShape(true, points, shapeColor);
-    builder.drawPoints(points, shapePointColor);
+    builder.drawShape(true, shape.getFullPoints(), shapeColor);
+    builder.drawPoints(shape.getFullPoints(), shapePointColor);
     builder.save("03-internal-medial-axis.ppm");
   }
 
-  // Skeleton
-  // for(auto & skelAxis : externalAxis) {
-  //   skelAxis.erase(skelAxis.begin()+skelAxis.size()-1);
-  // }
-  // CDP cdp(points, externalAxis, chords,
-  //   cdp_threshold, importanceCylindricalError, importanceDistanceError);
-  // cdp.compute();
-  // auto skeleton = cdp.getSkeleton();
-  // {
-  //   Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-  //   builder.addExtraPoints(points);
-  //   builder.drawEdges(points, chords, chordColor);
-  //   for(auto ax : externalAxis) {
-  //     builder.drawShape(false, ax, axisColor);
-  //     builder.drawPoints(ax, axisPointColor);
+  ChordsGenerator chordsGen(
+    shape.getFullPoints(),
+    externalAxis, internalAxis
+  );
+  chordsGen.compute();
+  std::vector<Geometry::Edge> optiChords = chordsGen.getChords();
+  auto axisPointToChord = chordsGen.axisPointToChord;
+  {
+    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
+    builder.setExtraPoints(shape.getFullPoints());
+    builder.drawEdges(shape.getFullPoints(), optiChords, axisColor);
+
+    for(auto ax : externalAxis) {
+      builder.drawShape(false, ax, axisColor);
+      builder.drawPoints(ax, axisPointColor);
+    }
+    for(auto ax : internalAxis) {
+      builder.drawShape(false, ax, axisColor);
+      builder.drawPoints(ax, axisPointColor);
+    }
+
+    builder.drawShape(true, shape.getFullPoints(), shapeColor);
+    builder.drawPoints(shape.getFullPoints(), shapePointColor);
+    builder.save("03-medial-axis-chords.ppm");
+  }
+
+  // std::vector<glm::vec3> meshVertices;
+  // std::vector<glm::uvec3> meshFaces;
+  // for(auto axis : externalAxis) {
+  //   std::vector<glm::vec2> axisWithoutJunctionPoint;
+  //   axisWithoutJunctionPoint.insert(
+  //     axisWithoutJunctionPoint.begin(), axis.begin(), axis.begin()+axis.size()-2
+  //   );
+  //   CylinderGenerator cylGen(
+  //     axisWithoutJunctionPoint,
+  //     shape.getFullPoints(), optiChords, axisPointToChord
+  //   );
+  //   cylGen.compute(cylinder_sampling);
+  //   for(auto f : cylGen.getFaces()) {
+  //     meshFaces.push_back({
+  //       f.x + meshVertices.size(),
+  //       f.y + meshVertices.size(),
+  //       f.z + meshVertices.size()
+  //     });
   //   }
-  //   for(auto skel : skeleton) {
-  //     builder.drawPoints(skel, skeletonPointColor);
-  //   }
-  //   builder.drawShape(true, points, shapeColor);
-  //   builder.drawPoints(points, shapePointColor);
-  //   builder.save("04-skeleton.ppm");
+  //   meshVertices.insert(
+  //     meshVertices.end(),
+  //     cylGen.getVertexPos().begin(),
+  //     cylGen.getVertexPos().end()
+  //   );
   // }
-  // {
-  //   Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-  //   builder.addExtraPoints(points);
-  //   for(auto skel : skeleton) {
-  //     builder.drawShape(false, skel, skeletonColor);
-  //     builder.drawPoints(skel, skeletonPointColor);
-  //   }
-  //   builder.drawShape(true, points, shapeColor);
-  //   builder.drawPoints(points, shapePointColor);
-  //   builder.save("04-skeleton-final.ppm");
-  // }
+
+  // Mesh vertices and faces
+
+  MeshGenerator meshGen(
+    shape.getFullPoints(),
+    externalAxis, internalAxis,
+    optiChords, axisPointToChord, cylinder_sampling
+  );
+  meshGen.compute();
+  std::vector<glm::vec3> meshVertices = meshGen.getVertices();
+  std::vector<glm::uvec3> meshFaces = meshGen.getFaces();
 
   // Full skeleton
   SkeletonGenerator skelGen(
-    points, externalAxis, internalAxis, chords,
+    shape.getFullPoints(), externalAxis, internalAxis, chords,
     cdp_threshold, importanceDistanceError, importanceCylindricalError);
   skelGen.compute();
-  Mesh * skeletonMesh = RiggingMesh::createRiggingSkeletonMesh(skelGen.getRigging());
+
+  Rigging & rigging = skelGen.getRigging();
+  rigging.initSkinning(meshVertices.size());
+  SkiningGenerator skinGen(rigging, meshVertices, meshFaces);
+  skinGen.compute();
+
+  std::vector<glm::vec3> meshColors;
+  meshColors.reserve(meshVertices.size());
+  bones_count = rigging.getBonesSkins().size();
+  auto & skinGroup = rigging.getBonesSkins().at(focus_bone_index);
+  for(unsigned v=0; v<meshVertices.size(); v++) {
+    auto weight_ = skinGroup.getVertexSkinWeights().find(v);
+    if(weight_ != skinGroup.getVertexSkinWeights().end()) {
+      float weight = weight_->second;
+      meshColors.push_back({0.f, weight, 0.f});
+    }
+  }
+
+  // Meshes rendering
+
+  if(generatedMesh!=nullptr) {
+    renderer->removeRenderable(generatedMesh);
+  }
+  generatedMesh = new Mesh(
+    new MeshGeometry(meshVertices, meshFaces, meshColors),
+    // MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.01f, cylinderMeshColor*0.001f, 1)
+    MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.0f, cylinderMeshColor*0.0f, 1)
+  );
+  renderer->addRenderable(generatedMesh);
+
+  if(skeletonMesh!=nullptr) {
+    renderer->removeRenderable(skeletonMesh);
+  }
+  skeletonMesh = RiggingMesh::createRiggingSkeletonMesh(
+    skelGen.getRigging(), skeletonMeshColor
+  );
   renderer->addRenderable(skeletonMesh);
 
+  {
+    std::vector<std::pair<glm::vec2, glm::vec2>> bones2D;
+    std::vector<glm::vec2> bonesPoints;
+    for(auto & bone : skelGen.getRigging().getBones()) {
+      bones2D.push_back({
+        glm::vec2(bone.getA().getPoint()),
+        glm::vec2(bone.getB().getPoint())
+      });
+      bonesPoints.push_back(glm::vec2(bone.getA().getPoint()));
+      bonesPoints.push_back(glm::vec2(bone.getB().getPoint()));
+    }
+    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
+    builder.setExtraPoints(shape.getFullPoints());
+    builder.addExtraPoints(bonesPoints);
+    builder.drawSegments(bones2D, skeletonColor0);
+    builder.drawShape(true, shape.getFullPoints(), shapeColor);
+    builder.drawPoints(shape.getFullPoints(), shapePointColor);
+    builder.save("04-skeleton.ppm");
+  }
+  {
+    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
+    builder.setExtraPoints(shape.getFullPoints());
+    for(auto ax : skelGen.getExternalAxisSkeleton()) {
+      builder.drawShape(false, ax, skeletonColor0);
+      builder.drawPoints(ax, axisPointColor);
+    }
+    for(auto ax : skelGen.getInternalAxisSkeleton()) {
+      builder.drawShape(false, ax, skeletonColor1);
+      builder.drawPoints(ax, axisPointColor);
+    }
+    for(auto ax : skelGen.getJunctionAxisSkeleton()) {
+      builder.drawShape(false, ax, skeletonColor2);
+      builder.drawPoints(ax, axisPointColor);
+    }
+    builder.drawShape(true, shape.getFullPoints(), shapeColor);
+    builder.drawPoints(shape.getFullPoints(), shapePointColor);
+    builder.save("04-skeleton-details.ppm");
+  }
+
 }
+
+float cameraNear = 0.1f;
+float cameraFar = 10.0f;
+
+bool withFaceCull = false;
 
 void renderImGui() {
   ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -410,18 +542,11 @@ void renderImGui() {
 
     ImGui::Begin("Sketchy !");
 
-    // ImGui::Text("This is some useful text.");
-    // ImGui::Checkbox("Demo Window", &show_demo_window);
-    // ImGui::Checkbox("Another Window", &show_another_window);
+    ImGui::SliderFloat("Cam near", &cameraNear, 0.1f, 10.0f);
+    ImGui::SliderFloat("Cam far", &cameraFar, 1.0f, 100.0f);
+    ImGui::Checkbox("Face culling", &withFaceCull);
 
-    // ImGui::SliderFloat("C Douglas-Peucker threshold", &cdp_threshold, 0.0f, 1.0f);
-    // ImGui::ColorEdit3("clear color", (float*)&clear_color);
-
-    // if (ImGui::Button("Button"))
-    //     counter++;
-    // ImGui::SameLine();
     // ImGui::Text("counter = %d", counter);
-
     // ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
 
     if (ImGui::RadioButton("FIXED", controllerMode == NONE)) { controllerMode = NONE; } ImGui::SameLine();
@@ -436,9 +561,15 @@ void renderImGui() {
     ImGui::SliderFloat("CDP d error", &importanceDistanceError, 0.0f, 1.0f);
     ImGui::SliderInt("prunning thresh", &ma_prun_depth, 3, 60);
     ImGui::SliderInt("nbr of prunning", &ma_prun_count, 1, 10);
+    ImGui::SliderInt("sub sampling", &sub_sampling, 1, 50);
+    ImGui::SliderInt("cylinder sampling", &cylinder_sampling, 1, 100);
+    ImGui::SliderInt("smooth mask size", &smooth_mask_size, 1, 10);
 
     ImGui::SliderInt("resolution w", &im_resolution_w, 100, 2000);
     ImGui::SliderInt("resolution h", &im_resolution_h, 100, 2000);
+
+    ImGui::Text("Bones count = %d", bones_count);
+    ImGui::SliderInt("Select bone", &focus_bone_index, 0, bones_count);
 
     // Perform skeleton computation on shape
     if (ImGui::Button("Medial axis")) {
@@ -446,7 +577,8 @@ void renderImGui() {
       for(auto p : drawing->getDrawing(drawing->drawingCount()-1)) {
         points.emplace_back(p.x, p.y);
       }
-      testPipeline(points);
+      Shape shape(sub_sampling, points);
+      testPipeline(shape);
     }
 
     // if (controllerMode == FPS) { ImGui::Text("FPS"); }
@@ -471,6 +603,13 @@ void interactImGui() {
   camController->setControllerMode(controllerMode);
 }
 
+glm::vec3 planeColor = {0.8f, 0.8f, 0.8f};
+glm::vec3 planePos = {0.f, -1.f, 0.f};
+
+glm::vec3 lightColor = {1.f, 1.f, 1.f};
+glm::vec3 lightMeshColor = {1.f, 1.f, 1.f};
+glm::vec3 lightPos = {0, 1, 1};
+
 int main(int argc, char ** argv) {
 
   renderer = new Renderer();
@@ -483,186 +622,25 @@ int main(int argc, char ** argv) {
   renderer->getCamera().setPosition(cameraPos);
 
   camController = new CameraController(renderer->getCamera());
-
   drawing = new Drawing();
 
+  renderer->addLight(Light::lightGetConstantCaster(
+    lightPos, lightColor*0.001f, lightColor, lightColor
+  ));
+  Mesh * lightMesh = new Mesh(
+    MeshGeometry::meshGetSphereData(0.1, 20, 20, nullptr),
+    MeshMaterial::meshGetBasicMaterial(lightMeshColor)
+  );
+  lightMesh->setPosition(lightPos);
+  renderer->addRenderable(lightMesh);
+  Mesh * plane = new Mesh(
+    MeshGeometry::meshGetPlaneData(50, 50, nullptr),
+    MeshMaterial::meshGetSimplePhongMaterial(planeColor, planeColor, 10)
+  );
+  plane->setPosition(planePos);
+  renderer->addRenderable(plane);
+
   initImGui();
-
-  // { // Test of Constrained Delaunay Triangulation 
-  //   std::vector<glm::vec2> points;
-  //   points.push_back({1, 1});
-  //   points.push_back({1, 0});
-  //   points.push_back({0, 0});
-  //   points.push_back({0, 1});
-  //   points.push_back({0.5, 0.5});
-  //   ConstrainedDelaunayTriangulation2D d(points);
-  //   auto triangles = d.getTriangles();
-  //   auto edges = d.getEdges();
-
-  //   Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-  //   builder.drawTriangles(points, triangles, chordColor);
-  //   builder.drawShape(true, points, shapeColor);
-  //   builder.drawPoints(points, shapePointColor);
-  //   builder.save("01-delaunay.ppm");
-  // }
-
-  { // Test medial axis
-    std::vector<glm::vec2> points;
-    // 0 100 200 300 400 400 400 400 300 200 100 0
-    // 0 0 0 0 0 100 200 300 300 300 300 300
-    // points.push_back({0, 0});
-    // points.push_back({1, 0});
-    // points.push_back({2, 0});
-    // points.push_back({3, 0});
-    // points.push_back({4, 0});
-    // points.push_back({4, 1});
-    // points.push_back({4, 2});
-    // points.push_back({4, 3});
-    // points.push_back({3, 3});
-    // points.push_back({2, 3});
-    // points.push_back({1, 3});
-    // points.push_back({0, 3});
-
-    // 200 300 300 300 400 500 500 400 300 300 300 200 200 200 100 0 0 100 200 200
-    // 0 0 100 200 200 200 300 300 300 400 500 500 400 300 300 300 200 200 200 100
-    points.push_back({2, 0});
-    points.push_back({3, 0});
-    points.push_back({3, 1});
-    points.push_back({3, 2});
-    points.push_back({4, 2});
-    points.push_back({5, 2});
-    points.push_back({5, 3});
-    points.push_back({4, 3});
-    points.push_back({3, 3});
-    points.push_back({3, 4});
-    points.push_back({3, 5});
-    points.push_back({2, 5});
-    points.push_back({2, 4});
-    points.push_back({2, 3});
-    points.push_back({1, 3});
-    points.push_back({0, 3});
-    points.push_back({0, 2});
-    points.push_back({1, 2});
-    points.push_back({2, 2});
-    points.push_back({2, 1});
-
-    ConstrainedDelaunayTriangulation2D d(points);
-    auto triangles = d.getTriangles();
-    auto edges = d.getEdges();
-
-    {
-      Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-      builder.drawTriangles(points, triangles, chordColor);
-      // builder.drawEdges(points, edges,  chordColor);
-      builder.drawShape(true, points, shapeColor);
-      builder.drawPoints(points, shapePointColor);
-      builder.save("01-delaunay.ppm");
-    }
-
-    MedialAxisGenerator medial(points, triangles);
-    // medial.compute();
-    auto midPoints = medial.computeMidPoints();
-    auto axis = medial.getMedialAxis();
-    std::vector<std::pair<glm::vec2, glm::vec2>> segments;
-    for(auto ax : axis.getPoints()) {
-      for(auto s : ax->getAdjs()) {
-        segments.emplace_back(ax->getPoint(), s->getPoint());
-      }
-    }
-
-    {
-      Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-      builder.setExtraPoints(points);
-      builder.drawSegments(segments, axisColor);
-      builder.drawShape(true, points, shapeColor);
-      builder.drawPoints(points, shapePointColor);
-      builder.save("02-medial-axis.ppm");
-    }
-
-    auto external = medial.extractExternalAxis();
-    {
-      Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-      builder.setExtraPoints(points);
-      for(auto ax : external) {
-        builder.drawShape(false, ax, axisColor);
-      }
-      builder.drawTriangles(points, triangles, chordColor);
-      builder.drawShape(true, points, shapeColor);
-      builder.drawPoints(points, shapePointColor);
-      builder.save("03-external-medial-axis.ppm");
-    }
-
-    std::cout <<  "edge count : " << edges.size() << std::endl;
-    CylinderGenerator cylGen(external[1], points, edges);
-    cylGen.compute(50);
-    // cylGen.showVertices();
-    // cylGen.showFaces();
-    MeshGeometry * geometry = new MeshGeometry(cylGen.getVertexPos(), cylGen.getFaces());
-    generatedMesh = new Mesh(
-      geometry,
-      MeshMaterial::meshGetBasicMaterial({0.5, 0.5, 0})
-    );
-    renderer->addRenderable(generatedMesh);
-  }
-
-  { // Test Cylindrical Douglas Peucker
-    std::vector<glm::vec2> points;
-    points.push_back({0, 0});
-    points.push_back({1, 0});
-    points.push_back({2, 0});
-    points.push_back({3, 1});
-    points.push_back({4, 1});
-    points.push_back({5, 0});
-    points.push_back({6, 0});
-    points.push_back({6, 4});
-    points.push_back({5, 4});
-    points.push_back({4, 3});
-    points.push_back({3, 3});
-    points.push_back({2, 4});
-    points.push_back({1, 4});
-    points.push_back({0, 4});
-    std::vector<std::vector<glm::vec2>> axis;
-    std::vector<glm::vec2> ax;
-    ax.push_back({0.5, 2});
-    ax.push_back({1.5, 2});
-    ax.push_back({2.5, 2});
-    ax.push_back({3.5, 2});
-    ax.push_back({4.5, 2});
-    ax.push_back({5.5, 2});
-    axis.push_back(ax);
-    std::vector<Geometry::Edge> chords;
-    chords.push_back(Geometry::Edge(1,12));
-    chords.push_back(Geometry::Edge(2,11));
-    chords.push_back(Geometry::Edge(3,10));
-    chords.push_back(Geometry::Edge(4,9));
-    chords.push_back(Geometry::Edge(5,8));
-
-    CDP cdp(points, axis, chords, 1);
-    cdp.compute();
-    auto skeleton = cdp.getSkeleton();
-
-    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-    builder.addExtraPoints(points);
-    builder.drawEdges(points, chords, chordColor);
-    builder.drawShape(false, axis[0], axisColor);
-    builder.drawPoints(axis[0], axisPointColor);
-    builder.drawShape(true, points, shapeColor);
-    builder.drawPoints(points, shapePointColor);
-    builder.drawPoints(skeleton[0], skeletonPointColor);
-    builder.save("04-skeleton.ppm");
-
-
-    // CylinderGenerator cylGen(axis[0], points, chords);
-    // cylGen.compute(50);
-    // cylGen.showVertices();
-    // cylGen.showFaces();
-    // MeshGeometry * geometry = new MeshGeometry(cylGen.getVertexPos(), cylGen.getFaces());
-    // generatedMesh = new Mesh(
-    //   geometry,
-    //   MeshMaterial::meshGetBasicMaterial({0.5, 0.5, 0})
-    // );
-    // renderer->addRenderable(generatedMesh);
-  }
 
   long delta = 0;
   while(!glfwWindowShouldClose(renderer->getWindow())) {
@@ -673,6 +651,9 @@ int main(int argc, char ** argv) {
 
     renderImGui();
     interactImGui();
+    renderer->getCamera().setNear(cameraNear);
+    renderer->getCamera().setFar(cameraFar);
+    renderer->faceCulling(withFaceCull);
     camController->update(delta);
 
     if(drawing_render_3d) {

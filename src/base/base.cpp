@@ -103,8 +103,6 @@ void Renderer::render() {
   glViewport(0, 0, width, height);
   glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
 
   // Some inits for lights
   for (unsigned i = 0; i < lights.size(); i++){
@@ -150,6 +148,13 @@ void Renderer::render() {
   // Render other objects
   glEnable(GL_DEPTH_TEST);
   glDisable(GL_STENCIL_TEST);
+  glCullFace(GL_BACK);
+  if(withFaceCull) {
+    glEnable(GL_CULL_FACE);
+  }
+  else {
+    glDisable(GL_CULL_FACE);
+  }
   glUseProgram(phongProgram);
   for (unsigned i = 0; i < renderables.size(); i++) {
       auto m = renderables[i];

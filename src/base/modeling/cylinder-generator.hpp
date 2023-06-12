@@ -11,13 +11,19 @@ public:
     CylinderGenerator(
         const std::vector<glm::vec2> & axis,
         const std::vector<glm::vec2> & shape,
-        const std::vector<Geometry::Edge> & chords
-    ): axis(axis), shape(shape), chords(chords) {}
+        const std::vector<Geometry::Edge> & chords,
+        const std::map<glm::vec2, Geometry::Edge> & axisPointToChord
+    ): axis(axis), shape(shape), chords(chords), axisPointToChord(axisPointToChord) {}
 
     void compute(unsigned circleSampleCount);
 
-    inline std::vector<glm::vec3> & getVertexPos() { return genVertexPos; }
-    inline std::vector<glm::uvec3> & getFaces() { return genFaces; }
+    inline const std::vector<glm::vec3> & getVertexPos() const { return genVertexPos; }
+    inline const std::vector<glm::uvec3> & getFaces() const { return genFaces; }
+
+    inline const Geometry::Edge & getLastChord() const { return lastChord; }
+    inline const Geometry::Edge & getBeforeLastChord() const { return beforeLastChord; }
+    inline std::vector<unsigned> getLastSectionSideAVertices() const { return lastSectionSideA; }
+    inline std::vector<unsigned> getLastSectionSideBVertices() const { return lastSectionSideB; }
 
     inline void showVertices() {
         std::cout << "Vertices : " << genVertexPos.size() << std::endl;
@@ -33,15 +39,23 @@ public:
         }
     }
 
+    unsigned offset = 0;
+
 private:
     // Input
     const std::vector<glm::vec2> & axis;
     const std::vector<glm::vec2> & shape;
     const std::vector<Geometry::Edge> & chords;
+    const std::map<glm::vec2, Geometry::Edge> & axisPointToChord;
 
     // Output
     std::vector<glm::vec3> genVertexPos;
     std::vector<glm::uvec3> genFaces;
+
+    std::vector<unsigned> lastSectionSideA;
+    std::vector<unsigned> lastSectionSideB;
+    Geometry::Edge lastChord = Geometry::Edge(0,0);
+    Geometry::Edge beforeLastChord = Geometry::Edge(0,0);
 
 };
 

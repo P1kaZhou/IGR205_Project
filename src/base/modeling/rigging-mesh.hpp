@@ -8,7 +8,10 @@ class RiggingMesh {
 public:
     RiggingMesh() {}
 
-    inline static Mesh * createRiggingSkeletonMesh(const Rigging & rigging) {
+    inline static Mesh * createRiggingSkeletonMesh(
+        const Rigging & rigging,
+        const glm::vec3 & color
+    ) {
         std::vector<glm::vec3> triangles;
         for(auto & bone : rigging.getBones()) {
             triangles.push_back(bone.getA().getPoint());
@@ -17,10 +20,9 @@ public:
         }
 
         std::vector<glm::uvec3> faces;
-        glm::vec3 color = {200, 200, 100};
         return new Mesh(
             new MeshGeometry(triangles, faces),
-            MeshMaterial::meshGetBasicMaterial(color)
+            MeshMaterial::meshGetSimplePhongMaterial(color, color, 5)
         );
     }
 

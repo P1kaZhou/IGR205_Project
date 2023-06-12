@@ -117,6 +117,32 @@ bool isPointInTriangle(
     const glm::vec2 & c
 );
 
+glm::vec3 planeToLineIntersection(
+    const glm::vec3 & p1, const glm::vec3 & p2, const glm::vec3 & p3,
+    const glm::vec3 & q1, const glm::vec3 & q2
+);
+
+void lineToLineIntersectionCoef(
+    const glm::vec2 & a, const glm::vec2 & u,
+    const glm::vec2 & b, const glm::vec2 & v,
+    float & t1, float & t2
+);
+
+glm::vec3 projectPointOnLine(
+    const glm::vec3 & l1, const glm::vec3 & l2,
+    const glm::vec3 & v
+);
+glm::vec2 projectPointOnLine(
+    const glm::vec2 & l1, const glm::vec2 & l2,
+    const glm::vec2 & v
+);
+
+inline glm::vec2 getOrthonalVector(const glm::vec2 & v) {
+    glm::vec3 n(0, 0, 1);
+    glm::vec3 orth = glm::cross(n, glm::vec3(v, 0));
+    return orth;
+}
+
 inline float pointToSegmentDistance(const glm::vec2 & p, const glm::vec2 & s1, const glm::vec2 & s2) {
     return 
         glm::abs((s2.x-s1.x)*(s1.y-p.y) - (s1.x-p.x)*(s2.y-s1.y))

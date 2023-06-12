@@ -54,8 +54,8 @@ private:
 
   ControllerMode mode = ControllerMode::FPS;
 
-  float lookSpeedX = M_PI * 0.0005; // Rad by seconds
-  float lookSpeedY = M_PI * 0.0005; // Rad by seconds
+  float lookSpeedX = M_PI * 0.0001; // Rad by seconds
+  float lookSpeedY = M_PI * 0.0001; // Rad by seconds
 
   double xPos = 0; // X mouse position in screen coordinate (centered at the screen center)
   double yPos = 0; // Y mouse position in screen coordinate (centered at the screen center)

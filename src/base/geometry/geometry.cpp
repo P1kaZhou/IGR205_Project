@@ -224,6 +224,45 @@ bool isPointInTriangle(
     return triangleArea(a,b,c)==areaSum;
 }
 
+/*Find the intersection point of a line with a plane.
+- The plane is defined by two vectors that we assume being coplanar.
+- The line is defined by two points.
+We assume that the plane and the line are not parallel.*/
+glm::vec3 planeToLineIntersection(
+    const glm::vec3 & p1, const glm::vec3 & p2, const glm::vec3 & p3,
+    const glm::vec3 & q1, const glm::vec3 & q2
+) {
+    glm::vec3 n = glm::cross(p2-p1, p3-p1);
+    float t = glm::dot(p1-q1, n) / glm::dot(q2-q1, n);
+    return q1 + t*(q2-q1);
+}
+
+void lineToLineIntersectionCoef(
+    const glm::vec2 & a, const glm::vec2 & u,
+    const glm::vec2 & b, const glm::vec2 & v,
+    float & t1, float & t2
+) {
+    auto ab = a-b;
+    // t1 = (ab.y - ab.x*v.y/v.x) / (u.x*v.y/v.x - u.y);
+    t1 = (v.x*ab.y - ab.x*v.y) / (u.x*v.y - u.y*v.x);
+    if(v.x!=0) t2 = (ab.x + t1*u.x) / v.x;
+    if(v.y!=0) t2 = (ab.y + t1*u.y) / v.y;
+}
+
+glm::vec3 projectPointOnLine(
+    const glm::vec3 & l1, const glm::vec3 & l2,
+    const glm::vec3 & v
+) {
+    return (glm::dot(l2-l1, v)/((l2-l1).length()*(l2-l1).length())) * (l2-l1);
+}
+
+glm::vec2 projectPointOnLine(
+    const glm::vec2 & l1, const glm::vec2 & l2,
+    const glm::vec2 & v
+) {
+    return (glm::dot(l2-l1, v)/((l2-l1).length()*(l2-l1).length())) * (l2-l1);
+}
+
 /*
 Return the closest chord to a point.
 */
@@ -236,7 +275,8 @@ const Geometry::Edge & getChordOnPoint(
     float minArea = FLT_MAX;
     for(unsigned i=0; i<chords.size(); i++) {
         const auto & c = chords[i];
-        float area = Geometry::triangleArea(points[c.a], points[c.b], p);
+        // float area = Geometry::triangleArea(p, points[c.a], points[c.b]);
+        float area = glm::distance(p, 0.5f*(points[c.a] + points[c.b]));
         if(minArea > area) {
             minArea = area;
             closestChord = i;

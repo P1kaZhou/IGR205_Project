@@ -27,7 +27,7 @@ public:
         adjacentJoints.push_back(joint);
     }
 
-    inline glm::vec3 getPoint() const { return point; }
+    inline const glm::vec3 & getPoint() const { return point; }
     inline unsigned getId() const { return id; }
     inline std::vector<SkeletonJoint> & getAdjacentJoints() { return adjacentJoints; }
 
@@ -35,7 +35,7 @@ private:
     unsigned id;
     glm::vec3 point;
     std::vector<SkeletonJoint> adjacentJoints;
-    
+
     inline void rotateAroundPoint(glm::vec3 & center, glm::vec3 & rotation) {
         glm::mat4 posMat = glm::translate(glm::mat4(1), center);
         glm::mat4 rotMat = glm::eulerAngleXYZ(
@@ -58,11 +58,11 @@ class SkeletonBone {
 
 public:
     SkeletonBone(
-        SkeletonJoint & a,
-        SkeletonJoint & b
+        const SkeletonJoint & a,
+        const SkeletonJoint & b
     ): a(a), b(b) {}
 
-    inline SkeletonJoint & getOther(const SkeletonJoint & a) const {
+    inline const SkeletonJoint & getOther(const SkeletonJoint & a) const {
         if(this->a.id == a.id) return this->b;
         return this->a;
     }
@@ -72,12 +72,12 @@ public:
             (a.id==bone.b.id && b.id==bone.a.id);
     }
 
-    inline SkeletonJoint & getA() const { return a; }
-    inline SkeletonJoint & getB() const { return b; }
+    inline const SkeletonJoint & getA() const { return a; }
+    inline const SkeletonJoint & getB() const { return b; }
 
 private:
-    SkeletonJoint & a;
-    SkeletonJoint & b;
+    const SkeletonJoint & a;
+    const SkeletonJoint & b;
 };
 
 #endif

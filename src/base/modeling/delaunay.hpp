@@ -7,9 +7,10 @@
 class ConstrainedDelaunayTriangulation2D {
 public:
   ConstrainedDelaunayTriangulation2D(
-    const std::vector<glm::vec2> & points
+    const std::vector<glm::vec2> & points,
+    bool constraints = true
   ) {
-    constrainedDelaunayWithCDT(points);
+    constrainedDelaunayWithCDT(points, constraints);
   }
 
   std::vector<glm::uvec3> & getTriangles() {
@@ -25,7 +26,8 @@ private:
   std::vector<Geometry::Edge> edges;
 
   void constrainedDelaunayWithCDT(
-    const std::vector<glm::vec2> & points
+    const std::vector<glm::vec2> & points,
+    bool constraints = true
   );
 };
 

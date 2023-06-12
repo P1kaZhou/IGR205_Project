@@ -43,6 +43,8 @@ public:
   inline const glm::vec2 & getPoint() { return point; }
   inline const std::vector<MedialAxisPoint *> & getAdjs() { return adjs; }
 
+  inline void setPoint(const glm::vec2 & p) { point=p; }
+
 private:
   glm::vec2 point;
   std::vector<MedialAxisPoint *> adjs;
@@ -75,6 +77,8 @@ public:
     p2->addAdj(p1);
   }
 
+  /*Remove a point from the medial axis.
+  The edges containing that point are removed.*/
   inline void removePoint(const glm::vec2 & point) {
     int index = getAxisPointIndex(point);
     if(index >= 0) {
@@ -105,7 +109,7 @@ public:
     return -1;
   }
 
-  inline const std::vector<MedialAxisPoint*> & getPoints() { return points; }
+  inline const std::vector<MedialAxisPoint*> & getPoints() const { return points; }
 
   void showAsAdjMatrix();
   void showAsAdjList();
