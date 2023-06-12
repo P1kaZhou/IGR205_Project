@@ -102,6 +102,7 @@ std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxis &medialAx
                 visitedPoints.insert(trueMinIndex);
 
                 normalChordalAxes.push_back(glm::uvec2(trueMaxIndex, trueMinIndex));
+                //TODO: verify that the new chordal axis doesn't intersect with all the previous ones
             }
         }
     }
@@ -111,10 +112,9 @@ std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxis &medialAx
 void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, MedialAxis &medialAxis, float threshold,
                                              std::vector<glm::uvec3> &triangles,
                                              std::vector<glm::vec2> sketchPoints) {
-    // TODO: apply Prasad criteria
     // The threshold represents the ratio of morphological significance, p/AB
 
-    //The main steps are:
+    // The main steps are:
     // 1. Get the potential candidates for removal. An axis is candidate if only one end of
     // the axe is connected to a junction
     // 2. For each candidate, compute the ratio of morphological significance, which is the ratio of the distance
@@ -125,6 +125,7 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, M
     std::vector<std::vector<glm::vec2>> externalAxis = medialAxisG.extractExternalAxis();
     // From this point onward, we iterate through the axis and compute their ratio of morphological significance
     std::vector<glm::uvec3> trianglesToRemove;
+    std::set<glm::vec2> pointsToAdd;
     for (auto axis: externalAxis) {
         // Get the first and the last element
         glm::vec2 firstPoint = axis[0];
@@ -139,52 +140,53 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, M
             unsigned a = triangle[0];
             unsigned b = triangle[1];
             unsigned c = triangle[2];
+
             glm::vec2 middlePointAB = (sketchPoints[a] + sketchPoints[b]) / 2.0f;
             glm::vec2 middlePointBC = (sketchPoints[b] + sketchPoints[c]) / 2.0f;
             glm::vec2 middlePointCA = (sketchPoints[c] + sketchPoints[a]) / 2.0f;
+
             float distanceAB1 = glm::distance(firstPoint, middlePointAB);
             float distanceBC1 = glm::distance(firstPoint, middlePointBC);
             float distanceCA1 = glm::distance(firstPoint, middlePointCA);
             float distanceAB2 = glm::distance(lastPoint, middlePointAB);
             float distanceBC2 = glm::distance(lastPoint, middlePointBC);
             float distanceCA2 = glm::distance(lastPoint, middlePointCA);
-            if (distanceAB1 < minDistance) {
+            float minDistances = std::min(std::min(std::min(distanceAB1, distanceBC1), distanceCA1),
+                                          std::min(std::min(distanceAB2, distanceBC2), distanceCA2));
+
+            if (distanceAB1 < minDistance && distanceAB1 == minDistances) {
                 minDistance = distanceAB1;
                 triangleEdge = glm::uvec2(a, b);
                 bool isLastPointClosest = false;
                 triangleToRemove = triangle;
-            }
-            if (distanceBC1 < minDistance) {
+            } else if (distanceBC1 < minDistance && distanceBC1 == minDistances) {
                 minDistance = distanceBC1;
                 triangleEdge = glm::uvec2(b, c);
                 bool isLastPointClosest = false;
                 triangleToRemove = triangle;
-            }
-            if (distanceCA1 < minDistance) {
+            } else if (distanceCA1 < minDistance && distanceCA1 == minDistances) {
                 minDistance = distanceCA1;
                 triangleEdge = glm::uvec2(c, a);
                 bool isLastPointClosest = false;
                 triangleToRemove = triangle;
-            }
-            if (distanceAB2 < minDistance) {
+            } else if (distanceAB2 < minDistance && distanceAB2 == minDistances) {
                 minDistance = distanceAB2;
                 triangleEdge = glm::uvec2(a, b);
                 bool isLastPointClosest = true;
                 triangleToRemove = triangle;
-            }
-            if (distanceBC2 < minDistance) {
+            } else if (distanceBC2 < minDistance && distanceBC2 == minDistances) {
                 minDistance = distanceBC2;
                 triangleEdge = glm::uvec2(b, c);
                 bool isLastPointClosest = true;
                 triangleToRemove = triangle;
-            }
-            if (distanceCA2 < minDistance) {
+            } else if (distanceCA2 < minDistance && distanceCA2 == minDistances) {
                 minDistance = distanceCA2;
                 triangleEdge = glm::uvec2(c, a);
                 bool isLastPointClosest = true;
                 triangleToRemove = triangle;
             }
         } // Iteration over the triangles ends here
+
         trianglesToRemove.push_back(triangleToRemove);
         const float CLOSE_ENOUGH = 0.5f; // Something small is relevant considering they should "perfectly match"
         if (minDistance < CLOSE_ENOUGH) {
@@ -202,18 +204,37 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, M
                 }
             }
         }
+        if (isLastPointClosest) {
+            // add last point to extend
+            pointsToAdd.insert(lastPoint);
+        } else {
+            // add first point to extend
+            pointsToAdd.insert(firstPoint);
+        }
     }
 
     // Once all axis are deleted, we shall proceed to the triangle deletion as well as the chordal axis extension
     // The triangle deletion is straightforward considering we have the list of triangles to remove, and the triangles
     // are passed by reference
     // For the chordal axis extension, for the deleted axes, we first check if they have a common "kept" neighbor
-    // (hence the `isLastPointClosest` boolean, although it still needs to be applied), this is to avoid duplicates
+    // (hence the `isLastPointClosest` boolean*), this is to avoid duplicates
     // Then we get the general direction of the "internal" axis that stops at the kept neighbor, and we extend it until
     // it reaches one sketchpoint. The step size should be the same as what separates the points in the medial axis
 
     // We can estimate the number of points to add by computing the distance between the kept neighbor and the
     // farthest sketchpoint following the general direction of the internal axis, and dividing it by the step size
+
+    // Remove the triangles
+    for (auto triangle: trianglesToRemove) {
+        triangles.erase(std::remove(triangles.begin(),
+                                    triangles.end(), triangle), triangles.end());
+    }
+
+    // Extend the chordal axis
+    for (auto startingExtendingPoint: pointsToAdd){
+        //TODO: get the general direction and extend it until it reaches one sketchpoint
+        // Something like dichotomy could work
+    }
 
 
 }
