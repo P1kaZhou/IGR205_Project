@@ -140,6 +140,7 @@ std::vector<glm::vec2> MedialAxisGenerator::computeMidPoints() {
 
     if(externalEdges.size() == 1) {
       // Termination triangle
+      terminationTriangles.push_back(triangle);
     }
     else if(externalEdges.size() == 2) {
       // Sleeve triangle
@@ -153,6 +154,7 @@ std::vector<glm::vec2> MedialAxisGenerator::computeMidPoints() {
           (points[externalEdges[1].x].y+points[externalEdges[1].y].y)/2
         }
       );
+      sleeveTriangles.push_back(triangle);
     }
     else if(externalEdges.size() == 3) {
       // Junction triangle
@@ -178,6 +180,7 @@ std::vector<glm::vec2> MedialAxisGenerator::computeMidPoints() {
         },
         center
       );
+      junctionTriangles.push_back(triangle);
     }
   }
   return midPoints;

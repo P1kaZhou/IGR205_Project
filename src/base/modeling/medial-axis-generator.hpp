@@ -23,11 +23,19 @@ public:
 
   void smooth(int size);
 
+  const std::vector<glm::uvec3> & getSleeveTriangles() {return sleeveTriangles;}
+  const std::vector<glm::uvec3> & getJunctionTriangles() {return junctionTriangles;}
+  const std::vector<glm::uvec3> & getTerminationTriangles() {return terminationTriangles;}
+
 private:
   const std::vector<glm::vec2> & points; // Points of the shape
   const std::vector<glm::uvec3> & triangulation;
 
   MedialAxis medialAxis;
+
+  std::vector<glm::uvec3> sleeveTriangles;
+  std::vector<glm::uvec3> junctionTriangles;
+  std::vector<glm::uvec3> terminationTriangles;
   
   unsigned triangleInternalEdgeCount(
     const glm::uvec3 & triangle,
