@@ -112,8 +112,9 @@ std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxisGenerator 
 }
 
 //TODO: make sure the operations are done in the right order, signature something as well
+
+// Crashes for weird shapes, fix it later
 void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, float threshold,
-                                             ConstrainedDelaunayTriangulation2D &cdt,
                                              std::vector<glm::vec2> sketchPoints) {
     MedialAxis & medialAxis = medialAxisG.getMedialAxis();
     // The threshold represents the ratio of morphological significance, p/AB
@@ -130,7 +131,7 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
     // From this point onward, we iterate through the axis and compute their ratio of morphological significance
     std::vector<glm::uvec3> trianglesToRemove;
     std::set<glm::vec2> pointsToAdd;
-    std::vector<glm::uvec3> junctionTriangles = computeJunctionTriangles(cdt);
+    std::vector<glm::uvec3> junctionTriangles = medialAxisG.getJunctionTriangles();
     for (auto axis: externalAxis) {
         // Get the first and the last element
         glm::vec2 firstPoint = axis[0];
@@ -236,7 +237,9 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
         // Remove the triangles
     }
 
-    // extendAxis(medialAxisG, pointsToAdd, sketchPoints);
+    medialAxisG.smooth(2);
+
+    extendAxis(medialAxisG, pointsToAdd, sketchPoints);
 
 }
 
@@ -456,6 +459,6 @@ void smoothing::extendAxis(MedialAxisGenerator &medialAxisG, std::set<glm::vec2>
         newAxis.push_back(newPointsForThisAxis);
     }
 
-    // The last step is to add all this axis to medial axis and medial axis gen
+    // TODO: The last step is to add all this axis to medial axis and medial axis gen
 
 }

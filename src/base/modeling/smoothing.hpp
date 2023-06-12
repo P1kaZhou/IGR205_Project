@@ -26,7 +26,7 @@ public:
     void applyLaplacianToMedial(MedialAxisGenerator &medialAxisG, int iterations);
 
     void insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, float threshold,
-                                      ConstrainedDelaunayTriangulation2D &cdt, std::vector<glm::vec2> sketchPoints);
+                                      std::vector<glm::vec2> sketchPoints);
 
     std::vector<glm::uvec2> computeNormalChordalAxes(MedialAxisGenerator &medialAxisG, ConstrainedDelaunayTriangulation2D &cdt,
                                                      std::vector<glm::vec2> &points);
