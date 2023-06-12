@@ -8,9 +8,10 @@ void smoothing::setLambda(float lambda) {
     this->lambda = lambda;
 }
 
-void smoothing::applyLaplacianToMedial(MedialAxis &medialAxis, int iterations) {
+void smoothing::applyLaplacianToMedial(MedialAxisGenerator &medialAxisG, int iterations) {
+    MedialAxis &medialAxis = medialAxisG.getMedialAxis();
     for (int k = 0; k < iterations; k++) {
-        std::vector<MedialAxisPoint *> points = medialAxis.getPoints();
+        const std::vector<MedialAxisPoint *> points = medialAxis.getPoints();
         std::vector<MedialAxisPoint *> newPoints;
         // Iterate through every medial axis point
         for (int i = 0; i < points.size(); i++) {
@@ -28,11 +29,12 @@ void smoothing::applyLaplacianToMedial(MedialAxis &medialAxis, int iterations) {
     }
 }
 
-std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxis &medialAxis,
+std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxisGenerator &medialAxisG,
                                                             ConstrainedDelaunayTriangulation2D &cdt,
                                                             std::vector<glm::vec2> &sketchPoints) {
     // There may actually be no need for the triangles, I can just go through the chordal axis and create a normal segment
-    std::vector<MedialAxisPoint *> points = medialAxis.getPoints();
+    const MedialAxis &medialAxis = medialAxisG.getMedialAxis();
+    const std::vector<MedialAxisPoint *> points = medialAxis.getPoints();
     std::vector<glm::uvec3> triangles = cdt.getTriangles();
 
     std::vector<glm::uvec2> normalChordalAxes; // The axes are determines by two points from the sketchpoints
@@ -109,9 +111,10 @@ std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxis &medialAx
     return normalChordalAxes;
 }
 
-void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, MedialAxis &medialAxis, float threshold,
+void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, float threshold,
                                              std::vector<glm::uvec3> &triangles,
                                              std::vector<glm::vec2> sketchPoints) {
+    MedialAxis & medialAxis = medialAxisG.getMedialAxis();
     // The threshold represents the ratio of morphological significance, p/AB
 
     // The main steps are:
@@ -230,7 +233,7 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, M
                                     triangles.end(), triangle), triangles.end());
     }
 
-    extendAxis(medialAxisG, medialAxis, pointsToAdd, sketchPoints);
+    extendAxis(medialAxisG, pointsToAdd, sketchPoints);
 
 }
 
@@ -291,12 +294,12 @@ std::vector<glm::uvec3> smoothing::computeJunctionTriangles(ConstrainedDelaunayT
 // Returns: a vector of connecting indexes
 std::vector<glm::uvec2>
 smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points,
-                                   MedialAxis &medialAxis) {
+                                   MedialAxisGenerator &medialAxisG) {
     // At this point, we only have the significant triangles
-
+    MedialAxis &medialAxis = medialAxisG.getMedialAxis();
     int trianglesNumber = triangles.size(); // To achieve the merging, we will need to compare respective distances
 
-    std::vector<MedialAxisPoint *> medialAxisPoints = medialAxis.getPoints();
+    const std::vector<MedialAxisPoint *> medialAxisPoints = medialAxis.getPoints();
 
     // There is a simple way to pick the merged triangles. If there is a chordal axis linking two triangles
     // then they are merged.
@@ -383,8 +386,9 @@ smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vect
 
 // A separate function for convenience
 // extends the axis with respect to the points to add
-void smoothing::extendAxis(MedialAxisGenerator &medialAxisG, MedialAxis &medialAxis, std::set<glm::vec2> pointsToAdd,
+void smoothing::extendAxis(MedialAxisGenerator &medialAxisG, std::set<glm::vec2> pointsToAdd,
                            std::vector<glm::vec2> &sketchPoints) {
+    MedialAxis &medialAxis = medialAxisG.getMedialAxis();
     // First step: get the external axis to extend (they are smoothened out first)
     std::vector<std::vector<glm::vec2>> externalAxisPruned = medialAxisG.extractExternalAxis();
 
@@ -440,7 +444,7 @@ void smoothing::extendAxis(MedialAxisGenerator &medialAxisG, MedialAxis &medialA
         }
 
         // as for now
-        int numberOfPointsToAdd = int(t1/stepSize) - 1;
+        int numberOfPointsToAdd = int(t1 / stepSize) - 1;
         for (int i = 0; i < numberOfPointsToAdd; i++) {
             glm::vec2 newPoint = pointToAdd + float(i) * gradient * stepSize;
             newPointsForThisAxis.push_back(newPoint);

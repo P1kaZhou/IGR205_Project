@@ -23,20 +23,20 @@ public:
 
     void setLambda(float lambda);
 
-    void applyLaplacianToMedial(MedialAxis &medialAxis, int iterations);
+    void applyLaplacianToMedial(MedialAxisGenerator &medialAxisG, int iterations);
 
-    void insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, MedialAxis &medialAxis, float threshold,
+    void insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, float threshold,
                                       std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> sketchPoints);
 
-    std::vector<glm::uvec2> computeNormalChordalAxes(MedialAxis &medialAxis, ConstrainedDelaunayTriangulation2D &cdt,
+    std::vector<glm::uvec2> computeNormalChordalAxes(MedialAxisGenerator &medialAxisG, ConstrainedDelaunayTriangulation2D &cdt,
                                                      std::vector<glm::vec2> &points);
 
     std::vector<glm::uvec3> computeJunctionTriangles(ConstrainedDelaunayTriangulation2D &cdt);
 
     std::vector<glm::uvec2> computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points,
-                                                    MedialAxis &medialAxis);
+                                                    MedialAxisGenerator &medialAxisG);
 
-    void extendAxis(MedialAxisGenerator &medialAxisG, MedialAxis &medialAxis,
+    void extendAxis(MedialAxisGenerator &medialAxisG,
                     std::set<glm::vec2> pointsToAdd,std::vector<glm::vec2> &sketchPoints);
 
 };
