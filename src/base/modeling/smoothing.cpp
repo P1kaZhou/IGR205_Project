@@ -130,7 +130,7 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
     std::vector<std::vector<glm::vec2>> externalAxis = medialAxisG.extractExternalAxis();
     // From this point onward, we iterate through the axis and compute their ratio of morphological significance
     std::vector<glm::uvec3> trianglesToRemove;
-    std::set<glm::vec2> pointsToAdd;
+
     std::vector<glm::uvec3> junctionTriangles = medialAxisG.getJunctionTriangles();
     for (auto axis: externalAxis) {
         std::cout << "axis size: " << axis.size() << std::endl;
@@ -140,7 +140,6 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
         // Get the closest junction point
         float minDistance = std::numeric_limits<float>::max();
         glm::uvec2 triangleEdge;
-        bool isLastPointClosest;
         glm::uvec3 triangleToRemove;
 
         for (auto triangle: junctionTriangles) {
@@ -165,32 +164,26 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
             if (distanceAB1 < minDistance && distanceAB1 == minDistances) {
                 minDistance = distanceAB1;
                 triangleEdge = glm::uvec2(a, b);
-                bool isLastPointClosest = false;
                 triangleToRemove = triangle;
             } else if (distanceBC1 < minDistance && distanceBC1 == minDistances) {
                 minDistance = distanceBC1;
                 triangleEdge = glm::uvec2(b, c);
-                bool isLastPointClosest = false;
                 triangleToRemove = triangle;
             } else if (distanceCA1 < minDistance && distanceCA1 == minDistances) {
                 minDistance = distanceCA1;
                 triangleEdge = glm::uvec2(c, a);
-                bool isLastPointClosest = false;
                 triangleToRemove = triangle;
             } else if (distanceAB2 < minDistance && distanceAB2 == minDistances) {
                 minDistance = distanceAB2;
                 triangleEdge = glm::uvec2(a, b);
-                bool isLastPointClosest = true;
                 triangleToRemove = triangle;
             } else if (distanceBC2 < minDistance && distanceBC2 == minDistances) {
                 minDistance = distanceBC2;
                 triangleEdge = glm::uvec2(b, c);
-                bool isLastPointClosest = true;
                 triangleToRemove = triangle;
             } else if (distanceCA2 < minDistance && distanceCA2 == minDistances) {
                 minDistance = distanceCA2;
                 triangleEdge = glm::uvec2(c, a);
-                bool isLastPointClosest = true;
                 triangleToRemove = triangle;
             }
         } // Iteration over the triangles ends here
@@ -212,13 +205,6 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
                 }
             }
         }
-        if (isLastPointClosest) {
-            // add last point to extend
-            pointsToAdd.insert(lastPoint);
-        } else {
-            // add first point to extend
-            pointsToAdd.insert(firstPoint);
-        }
     }
 
     // Once all axis are deleted, we shall proceed to the triangle deletion as well as the chordal axis extension
@@ -233,15 +219,13 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
     // farthest sketchpoint following the general direction of the internal axis, and dividing it by the step size
 
     // Remove the triangles
-    for (auto triangle: trianglesToRemove) {
-        // Remove the triangles
-    }
+    // Later
 
     std::cout << "bye" << std::endl;
 
     medialAxisG.smooth(2);
 
-    extendAxis(medialAxisG, pointsToAdd, sketchPoints);
+    extendAxis(medialAxisG, sketchPoints);
 
     std::cout << "bye 2" << std::endl;
 }
@@ -396,7 +380,7 @@ smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vect
 
 // A separate function for convenience
 // extends the axis with respect to the points to add
-void smoothing::extendAxis(MedialAxisGenerator &medialAxisG, std::set<glm::vec2> pointsToAdd,
+void smoothing::extendAxis(MedialAxisGenerator &medialAxisG,
                            std::vector<glm::vec2> &sketchPoints) {
     MedialAxis &medialAxis = medialAxisG.getMedialAxis();
 
@@ -404,37 +388,29 @@ void smoothing::extendAxis(MedialAxisGenerator &medialAxisG, std::set<glm::vec2>
     std::vector<std::vector<glm::vec2>> externalAxisPruned = medialAxisG.extractExternalAxis();
 
     std::vector<std::vector<glm::vec2>> newAxis;
-    // Second step: iterate through the points to add and extend them
-    for (auto pointToAdd: pointsToAdd) {
+
+    std::vector<glm::vec2> pointsToAdd;
+
+    for (auto pointAxis: externalAxisPruned){
+        glm::vec2 pointToAdd = pointAxis[0];
+        pointsToAdd.push_back(pointToAdd);
         glm::vec2 gradient = glm::vec2(0.0f);
         float stepSize = 0.1f; // It's going to change anyway
-        // Get the vector that contains pointToAdd
-        for (auto vecAxis: externalAxisPruned) {
-            if (std::find(vecAxis.begin(), vecAxis.end(), pointToAdd) != vecAxis.end()) {
-                // We found the vector that contains pointToAdd
-                int index = std::find(vecAxis.begin(), vecAxis.end(), pointToAdd) - vecAxis.begin();
-                // Now we need to extend the axis
-                // Surely, the point is at one of the extremities
-                // We are going to compute the gradient by taking the point before and even before
-                // There is a chance that we can't do that in this case ripbozo
-                int gradientAccuracy = 2;
-                if (vecAxis.size() < 2) {
-                    gradientAccuracy = 1;
-                }
-                if (index == 0) {
-                    for (int i = 1; i < gradientAccuracy+1; i++) {
-                        gradient += (vecAxis[0] - vecAxis[i]) / float(gradientAccuracy);
-                    }
-                    stepSize = glm::distance(vecAxis[0], vecAxis[1]);
-                } else if (index == vecAxis.size() - 1) {
-                    for (int i = 1; i < gradientAccuracy+1; i++) {
-                        gradient += (vecAxis[vecAxis.size() - 1] - vecAxis[vecAxis.size() - 1 - i]) /
-                                    float(gradientAccuracy);
-                    }
-                    stepSize = glm::distance(vecAxis[vecAxis.size() - 1], vecAxis[vecAxis.size() - 2]);
-                }
-            }
-        } // At this point we have the gradient that comes from the axis where the point belongs to
+
+        int pointAxisSize  = pointAxis.size();
+        // Compute the cumulative gradient
+        int gradientAccuracy = 2;
+        if (pointAxisSize < 2){
+            gradientAccuracy = 1;
+        }
+        for (int i = 1; i < gradientAccuracy + 1; i++){
+            glm::vec2 gradientToAdd = (pointAxis[0] - pointAxis[i])/float(gradientAccuracy);
+            gradient += gradientToAdd;
+        }
+
+        stepSize = glm::distance(pointAxis[0], pointAxis[1]);
+
+        // At this point we have the gradient that comes from the axis where the point belongs to
 
         std::vector<glm::vec2> newPointsForThisAxis;
 

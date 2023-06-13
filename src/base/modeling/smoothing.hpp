@@ -36,8 +36,7 @@ public:
     std::vector<glm::uvec2> computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vector<glm::vec2> &points,
                                                     MedialAxisGenerator &medialAxisG);
 
-    void extendAxis(MedialAxisGenerator &medialAxisG,
-                    std::set<glm::vec2> pointsToAdd,std::vector<glm::vec2> &sketchPoints);
+    void extendAxis(MedialAxisGenerator &medialAxisG, std::vector<glm::vec2> &sketchPoints);
 
 };
 
