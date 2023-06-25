@@ -112,10 +112,11 @@ std::vector<glm::uvec2> smoothing::computeNormalChordalAxes(MedialAxisGenerator 
 }
 
 //TODO: make sure the operations are done in the right order, signature something as well
+
+// Crashes for weird shapes, fix it later
 void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, float threshold,
-                                             ConstrainedDelaunayTriangulation2D &cdt,
                                              std::vector<glm::vec2> sketchPoints) {
-    MedialAxis & medialAxis = medialAxisG.getMedialAxis();
+    MedialAxis &medialAxis = medialAxisG.getMedialAxis();
     // The threshold represents the ratio of morphological significance, p/AB
 
     // The main steps are:
@@ -129,18 +130,17 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
     std::vector<std::vector<glm::vec2>> externalAxis = medialAxisG.extractExternalAxis();
     // From this point onward, we iterate through the axis and compute their ratio of morphological significance
     std::vector<glm::uvec3> trianglesToRemove;
-    std::set<glm::vec2> pointsToAdd;
-    std::vector<glm::uvec3> junctionTriangles = computeJunctionTriangles(cdt);
+
+    std::vector<glm::uvec3> junctionTriangles = medialAxisG.getJunctionTriangles();
     for (auto axis: externalAxis) {
+        std::cout << "axis size: " << axis.size() << std::endl;
         // Get the first and the last element
         glm::vec2 firstPoint = axis[0];
         glm::vec2 lastPoint = axis[axis.size() - 1];
         // Get the closest junction point
         float minDistance = std::numeric_limits<float>::max();
         glm::uvec2 triangleEdge;
-        bool isLastPointClosest = true;
         glm::uvec3 triangleToRemove;
-        //TODO: it's not the delaunay triangles, only the junction triangles
 
         for (auto triangle: junctionTriangles) {
             // as the chordal points are based from the middle of the triangle edges, we proceed this way
@@ -164,32 +164,26 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
             if (distanceAB1 < minDistance && distanceAB1 == minDistances) {
                 minDistance = distanceAB1;
                 triangleEdge = glm::uvec2(a, b);
-                bool isLastPointClosest = false;
                 triangleToRemove = triangle;
             } else if (distanceBC1 < minDistance && distanceBC1 == minDistances) {
                 minDistance = distanceBC1;
                 triangleEdge = glm::uvec2(b, c);
-                bool isLastPointClosest = false;
                 triangleToRemove = triangle;
             } else if (distanceCA1 < minDistance && distanceCA1 == minDistances) {
                 minDistance = distanceCA1;
                 triangleEdge = glm::uvec2(c, a);
-                bool isLastPointClosest = false;
                 triangleToRemove = triangle;
             } else if (distanceAB2 < minDistance && distanceAB2 == minDistances) {
                 minDistance = distanceAB2;
                 triangleEdge = glm::uvec2(a, b);
-                bool isLastPointClosest = true;
                 triangleToRemove = triangle;
             } else if (distanceBC2 < minDistance && distanceBC2 == minDistances) {
                 minDistance = distanceBC2;
                 triangleEdge = glm::uvec2(b, c);
-                bool isLastPointClosest = true;
                 triangleToRemove = triangle;
             } else if (distanceCA2 < minDistance && distanceCA2 == minDistances) {
                 minDistance = distanceCA2;
                 triangleEdge = glm::uvec2(c, a);
-                bool isLastPointClosest = true;
                 triangleToRemove = triangle;
             }
         } // Iteration over the triangles ends here
@@ -211,13 +205,6 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
                 }
             }
         }
-        if (isLastPointClosest) {
-            // add last point to extend
-            pointsToAdd.insert(lastPoint);
-        } else {
-            // add first point to extend
-            pointsToAdd.insert(firstPoint);
-        }
     }
 
     // Once all axis are deleted, we shall proceed to the triangle deletion as well as the chordal axis extension
@@ -232,12 +219,15 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
     // farthest sketchpoint following the general direction of the internal axis, and dividing it by the step size
 
     // Remove the triangles
-    for (auto triangle: trianglesToRemove) {
-        // Remove the triangles
-    }
+    // Later
 
-    // extendAxis(medialAxisG, pointsToAdd, sketchPoints);
+    std::cout << "bye" << std::endl;
 
+    medialAxisG.smooth(2);
+
+    extendAxis(medialAxisG, sketchPoints);
+
+    std::cout << "bye 2" << std::endl;
 }
 
 // TODO: either modify this or use the resources provided by Ghislain
@@ -390,72 +380,82 @@ smoothing::computeConnectingRegion(std::vector<glm::uvec3> &triangles, std::vect
 
 // A separate function for convenience
 // extends the axis with respect to the points to add
-void smoothing::extendAxis(MedialAxisGenerator &medialAxisG, std::set<glm::vec2> pointsToAdd,
+void smoothing::extendAxis(MedialAxisGenerator &medialAxisG,
                            std::vector<glm::vec2> &sketchPoints) {
     MedialAxis &medialAxis = medialAxisG.getMedialAxis();
+
     // First step: get the external axis to extend (they are smoothened out first)
     std::vector<std::vector<glm::vec2>> externalAxisPruned = medialAxisG.extractExternalAxis();
 
     std::vector<std::vector<glm::vec2>> newAxis;
-    // Second step: iterate through the points to add and extend them
-    for (auto pointToAdd: pointsToAdd) {
+
+    std::vector<glm::vec2> pointsToAdd;
+
+    for (auto pointAxis: externalAxisPruned){
+        glm::vec2 pointToAdd = pointAxis[0];
+        pointsToAdd.push_back(pointToAdd);
         glm::vec2 gradient = glm::vec2(0.0f);
         float stepSize = 0.1f; // It's going to change anyway
-        // Get the vector that contains pointToAdd
-        for (auto vecAxis: externalAxisPruned) {
-            if (std::find(vecAxis.begin(), vecAxis.end(), pointToAdd) != vecAxis.end()) {
-                // We found the vector that contains pointToAdd
-                int index = std::find(vecAxis.begin(), vecAxis.end(), pointToAdd) - vecAxis.begin();
-                // Now we need to extend the axis
-                // Surely, the point is at one of the extremities
-                // We are going to compute the gradient by taking the point before and even before
-                // There is a chance that we can't do that in this case ripbozo
-                int gradientAccuracy = 2;
-                if (vecAxis.size() < 2) {
-                    gradientAccuracy = 1;
-                }
-                if (index == 0) {
-                    for (int i = 0; i < gradientAccuracy; i++) {
-                        gradient += (vecAxis[0] - vecAxis[i]) / float(gradientAccuracy);
-                    }
-                    stepSize = glm::distance(vecAxis[0], vecAxis[1]);
-                } else if (index == vecAxis.size() - 1) {
-                    for (int i = 0; i < gradientAccuracy; i++) {
-                        gradient += (vecAxis[vecAxis.size() - 1] - vecAxis[vecAxis.size() - 1 - i]) /
-                                    float(gradientAccuracy);
-                    }
-                    stepSize = glm::distance(vecAxis[vecAxis.size() - 1], vecAxis[vecAxis.size() - 2]);
-                }
-            }
-        } // At this point we have the gradient that comes from the axis where the point belongs to
+
+        int pointAxisSize  = pointAxis.size();
+        // Compute the cumulative gradient
+        int gradientAccuracy = 2;
+        if (pointAxisSize < 2){
+            gradientAccuracy = 1;
+        }
+        for (int i = 1; i < gradientAccuracy + 1; i++){
+            glm::vec2 gradientToAdd = (pointAxis[0] - pointAxis[i])/float(gradientAccuracy);
+            gradient += gradientToAdd;
+        }
+
+        stepSize = glm::distance(pointAxis[0], pointAxis[1]);
+
+        // At this point we have the gradient that comes from the axis where the point belongs to
 
         std::vector<glm::vec2> newPointsForThisAxis;
 
         // Check if the new point is inside the polygon
         // We are going to use lineToLineIntersectionCoef from the Geometry package
         float t1, t2;
+        glm::vec2 intersectionPoint;
 
         for (int i = 0; i < sketchPoints.size(); i++) {
             glm::vec2 a = sketchPoints[i];
             glm::vec2 b = sketchPoints[(i + 1) % sketchPoints.size()];
             Geometry::lineToLineIntersectionCoef(pointToAdd, gradient, a, b - a, t1, t2);
             if (t2 > 0.0f && t2 < 1.0f) {
-                // We have an intersection
-                // We need to find the intersection point
-                glm::vec2 intersectionPoint = a + t2 * (b - a);
-                newPointsForThisAxis.push_back(intersectionPoint);
+                intersectionPoint = a + t2 * (b - a);
+                break;
             }
         }
 
         // as for now
-        int numberOfPointsToAdd = int(t1 / stepSize) - 1;
+        int numberOfPointsToAdd = int(t1 / stepSize);
         for (int i = 0; i < numberOfPointsToAdd; i++) {
             glm::vec2 newPoint = pointToAdd + float(i) * gradient * stepSize;
             newPointsForThisAxis.push_back(newPoint);
         }
+        newPointsForThisAxis.push_back(intersectionPoint);
         newAxis.push_back(newPointsForThisAxis);
     }
 
-    // The last step is to add all this axis to medial axis and medial axis gen
-
+    for (auto newAxisToAdd: newAxis) {
+        std::vector<MedialAxisPoint *> addedPoints;
+        for (auto newPoint: newAxisToAdd) {
+            MedialAxisPoint *myPoint = medialAxis.insertPoint(newPoint);
+            addedPoints.push_back(myPoint);
+        }
+        int n = addedPoints.size();
+        if (n > 1) {
+            // Case i = 0;
+            addedPoints[0]->addAdj(addedPoints[1]);
+            // Case i = 1 to n - 2
+            for (int i = 1; i < n - 1; i++) {
+                addedPoints[i]->addAdj(addedPoints[i - 1]);
+                addedPoints[i]->addAdj(addedPoints[i + 1]);
+            }
+            // Case i = n - 1
+            addedPoints[n - 1]->addAdj(addedPoints[n - 2]);
+        }
+    }
 }
