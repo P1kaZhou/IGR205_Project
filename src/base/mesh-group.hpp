@@ -64,6 +64,13 @@ public:
     inline const glm::vec3 & getScale() const { return scale; }
     inline const glm::vec3 & getAngles() const { return angles; }
 
+    inline glm::vec3 getCompleteParentPosition() const {
+        if(parent==nullptr) return {0.f,0.f,0.f};
+        else {
+            return parent->position + parent->getCompleteParentPosition();
+        }
+    }
+
 protected:
     MeshGroup * parent = nullptr;
 

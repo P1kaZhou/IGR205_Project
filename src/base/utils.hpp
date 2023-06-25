@@ -18,6 +18,7 @@
 #include <string>
 #include <cmath>
 #include <memory>
+#include <algorithm>
 
 #include <chrono>
 

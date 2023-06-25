@@ -279,7 +279,7 @@ glm::vec3 cylinderMeshColor = {0, 100, 100};
 glm::vec3 skeletonMeshColor = {0, 250, 0};
 glm::vec3 skeletonMeshColorHighLight = {255, 255, 255};
 
-Mesh * skeletonMesh = nullptr;
+std::vector<Renderable *> skeletonMesh;
 Mesh * generatedMesh = nullptr;
 MeshSkeleton * generatedMeshSkeleton = nullptr;
 
@@ -335,15 +335,15 @@ void testPipeline(
   auto midPoints = medial.computeMidPoints();
   for(unsigned i=0; i<3; i++){
     if(i==1) {
-      for(int ii=1; ii<=ma_prun_count; ii++) {
-        // medial.pruning(ma_prun_depth*(ii/ma_prun_count));
-        medial.pruning(ma_prun_depth);
-      }
+      // for(int ii=1; ii<=ma_prun_count; ii++) {
+      //   // medial.pruning(ma_prun_depth*(ii/ma_prun_count));
+      //   medial.pruning(ma_prun_depth);
+      // }
 
-      // smoothing s;
-      // s.insignificantBranchesRemoval(
-      //   medial, pruning__threshold, triangles, shape.getSubSampledPoints()
-      // );
+      smoothing s;
+      s.insignificantBranchesRemoval(
+        medial, pruning__threshold, shape.getSubSampledPoints()
+      );
 
     }
     if(i==2) {
@@ -449,17 +449,18 @@ void testPipeline(
   SkiningGenerator skinGen(rigging, meshVertices, meshFaces);
   skinGen.compute();
 
-  std::vector<glm::vec3> meshColors;
-  meshColors.reserve(meshVertices.size());
   bones_count = rigging.getBonesSkins().size();
-  auto & skinGroup = rigging.getBonesSkins().at(focus_bone_index);
-  for(unsigned v=0; v<meshVertices.size(); v++) {
-    auto weight_ = skinGroup.getVertexSkinWeights().find(v);
-    if(weight_ != skinGroup.getVertexSkinWeights().end()) {
-      float weight = weight_->second;
-      meshColors.push_back({0.f, weight, 0.f});
-    }
-  }
+  
+  // std::vector<glm::vec3> meshColors;
+  // meshColors.reserve(meshVertices.size());
+  // auto & skinGroup = rigging.getBonesSkins().at(focus_bone_index);
+  // for(unsigned v=0; v<meshVertices.size(); v++) {
+  //   auto weight_ = skinGroup.getVertexSkinWeights().find(v);
+  //   if(weight_ != skinGroup.getVertexSkinWeights().end()) {
+  //     float weight = weight_->second;
+  //     meshColors.push_back({0.f, weight, 0.f});
+  //   }
+  // }
 
   // Meshes rendering
 
@@ -469,8 +470,8 @@ void testPipeline(
   if(show_mesh) {
     if(show_skeleton) {
       generatedMesh = new Mesh(
-        new MeshGeometry(meshVertices, meshFaces, meshColors),
-        MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.0f, cylinderMeshColor*0.0f, 1)
+        new MeshGeometry(meshVertices, meshFaces),
+        MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.01f, cylinderMeshColor*0.001f, 1)
       );
     }
     else {
@@ -495,15 +496,18 @@ void testPipeline(
     renderer->addRenderable(generatedMesh);
   }
 
-  if(skeletonMesh!=nullptr) {
-    renderer->removeRenderable(skeletonMesh);
+  if(skeletonMesh.size()>0) {
+    for(auto m : skeletonMesh)
+      renderer->removeRenderable(m);
   }
   if(show_skeleton) {
-    skeletonMesh = (Mesh*) generatedMeshSkeleton->getSkeletonMesh(
+    skeletonMesh = generatedMeshSkeleton->getSkeletonMesh(
       skeletonMeshColor, focus_bone_index, skeletonMeshColorHighLight
     );
-    skeletonMesh->setDepthTest(false);
-    renderer->addRenderable(skeletonMesh);
+    for(auto m : skeletonMesh) {
+      m->setDepthTest(false);
+      renderer->addRenderable(m);
+    }
   }
 
 
@@ -553,7 +557,7 @@ float cameraFar = 10.0f;
 
 bool withFaceCull = false;
 
-float bone_rotation = 0;
+glm::vec3 bone_rotation = {0.f,0.f,0.f};
 
 void renderImGui() {
   ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -621,19 +625,52 @@ void renderImGui() {
         generatedMesh->getGeometry()->getFaces(),
         generatedMesh->getGeometry()->getVertexPositions());
     }
-    if (ImGui::Button("Skeleton STL file") && skeletonMesh) {
-      writeSTL(
-        "skeleton.stl",
-        skeletonMesh->getGeometry()->getFaces(),
-        skeletonMesh->getGeometry()->getVertexPositions());
+    // if (ImGui::Button("Skeleton STL file") && skeletonMesh) {
+    //   writeSTL(
+    //     "skeleton.stl",
+    //     skeletonMesh->getGeometry()->getFaces(),
+    //     skeletonMesh->getGeometry()->getVertexPositions());
+    // }
+
+    if(ImGui::Button("RotateX+")) {
+      if(generatedMesh && bones_count>0) {
+        bone_rotation.x += M_PI*0.1;
+        generatedMeshSkeleton->rotateBoneArroundA(focus_bone_index, bone_rotation);
+      }
+    }
+    ImGui::SameLine();
+    if(ImGui::Button("RotateX-")) {
+      if(generatedMesh && bones_count>0) {
+        bone_rotation.x -= M_PI*0.1;
+        generatedMeshSkeleton->rotateBoneArroundA(focus_bone_index, bone_rotation);
+      }
     }
 
-    ImGui::SliderFloat("angle", &bone_rotation, 0.0f, 2.0f);
-    if(ImGui::Button("Rotate")) {
+    if(ImGui::Button("RotateY+")) {
       if(generatedMesh && bones_count>0) {
-        glm::mat4 & rot = generatedMeshSkeleton->getBones().at(focus_bone_index).rotationMat;
-        showMatrix(rot);
-        rot = glm::rotate(rot, bone_rotation, glm::vec3(0.f, 0.f, 1.f));
+        bone_rotation.y += M_PI*0.1;
+        generatedMeshSkeleton->rotateBoneArroundA(focus_bone_index, bone_rotation);
+      }
+    }
+    ImGui::SameLine();
+    if(ImGui::Button("RotateY-")) {
+      if(generatedMesh && bones_count>0) {
+        bone_rotation.y -= M_PI*0.1;
+        generatedMeshSkeleton->rotateBoneArroundA(focus_bone_index, bone_rotation);
+      }
+    }
+
+    if(ImGui::Button("RotateZ+")) {
+      if(generatedMesh && bones_count>0) {
+        bone_rotation.z += M_PI*0.1;
+        generatedMeshSkeleton->rotateBoneArroundA(focus_bone_index, bone_rotation);
+      }
+    }
+    ImGui::SameLine();
+    if(ImGui::Button("RotateZ-")) {
+      if(generatedMesh && bones_count>0) {
+        bone_rotation.z -= M_PI*0.1;
+        generatedMeshSkeleton->rotateBoneArroundA(focus_bone_index, bone_rotation);
       }
     }
 

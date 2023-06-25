@@ -5,7 +5,7 @@
 MeshSkeleton::MeshSkeleton(
   const Rigging & rigging
 ) {
-  bones.clear();
+  bones.reserve(rigging.getBones().size());
   for(unsigned i=0; i<rigging.getBones().size(); i++) {
     const auto & bone = rigging.getBones()[i];
     const auto & boneSkin = ((Rigging&)rigging).getBonesSkins()[i];
@@ -13,7 +13,8 @@ MeshSkeleton::MeshSkeleton(
     MeshBone meshBone;
     meshBone.A = bone.getA().getPoint();
     meshBone.B = bone.getB().getPoint();
-    meshBone.rotationMat = glm::mat4(1);
+    meshBone.parentIndexPlusOne = 0;
+    meshBone.mat = glm::mat4(1);
     meshBone.verticesWeights = std::vector<float>();
     meshBone.verticesWeights.resize(
       boneSkin.getVertexSkinWeights().size(),
@@ -27,11 +28,25 @@ MeshSkeleton::MeshSkeleton(
     verticesCount = boneSkin.getVertexSkinWeights().size();
   }
 
-  vertexTransformCoefs = new float[bones.size()*verticesCount];
+  for(unsigned i=0; i<rigging.getBones().size(); i++) {
+    MeshBone * meshBone = &(bones.at(i));
+    const auto & bone = rigging.getBones()[i];
+    
+    for(unsigned j=0; j<rigging.getBones().size(); j++) {
+      const auto & b = rigging.getBones()[j];
+      if(i != j) {
+        if(bone.getA().getId() == b.getB().getId()) {
+          meshBone->parentIndexPlusOne = j+1;
+        }
+      }
+    }
+  }
+
+  vertexTransformCoefs = new float[bones.size()*verticesCount*textureElemSize*textureElemSize];
   memset(
       vertexTransformCoefs,
       0,
-      sizeof(float)*bones.size()*verticesCount
+      sizeof(float)*bones.size()*verticesCount*textureElemSize*textureElemSize
   );
 }
 
@@ -42,6 +57,9 @@ void MeshSkeleton::updateUniform(GLuint program) {
   glUniform1ui(glGetUniformLocation(program, "verticesCount"), verticesCount);
   getOpenGLError("vertices count uniform");
 
+  glUniform1ui(glGetUniformLocation(program, "textureElemSize"), textureElemSize);
+  getOpenGLError("texture elem size");
+
   for(unsigned b=0; b<bones.size(); b++) {
     auto name = buildIndexedString("bones[", b, "].A");
     glUniform3f(
@@ -51,28 +69,20 @@ void MeshSkeleton::updateUniform(GLuint program) {
       bones[b].A.x, bones[b].A.y, bones[b].A.z
     );
     delete name;
+
     name = buildIndexedString("bones[", b, "].rotationMat");
     glUniformMatrix4fv(
       glGetUniformLocation(
         program, name
       ),
       1, GL_FALSE,
-      glm::value_ptr(bones[b].rotationMat)
+      glm::value_ptr(bones[b].mat)
     );
     delete name;
 
-    // for(unsigned v=0; v<verticesCount; v++) {
-    //   name = buildIndexedString("bones[", b, "].weights[");
-    //   auto name_ = buildIndexedString(name, v, "]");
-    //   glUniform1f(
-    //     glGetUniformLocation(
-    //       program, name_
-    //     ),
-    //     bones[b].verticesWeights[v]
-    //   );
-    //   delete name;
-    //   delete name_;
-    // }
+    name = buildIndexedString("bones[", b, "].parentIndexPlusOne");
+    glUniform1ui(glGetUniformLocation(program, name), bones[b].parentIndexPlusOne);
+    delete name;
   }
 
   vertexTransformCoefsTexture.bind(MAP_TEXTURE_VERTEX_TRANSFORM_COEF);
@@ -84,39 +94,46 @@ void MeshSkeleton::initVerticesTranformsCoef() {
     vertexTransformCoefsTexture.interpolateToNearest = true;
     vertexTransformCoefsTexture.initFromData(
       vertexTransformCoefs,
-      verticesCount,
-      bones.size(), 1, false
+      verticesCount*textureElemSize,
+      bones.size()*textureElemSize
+      , 1, false
     );
   }
 }
 
 void MeshSkeleton::setVerticesCoef(unsigned transformIndex, unsigned vertexIndex, float value) {
-  vertexTransformCoefs[
-      transformIndex*verticesCount + vertexIndex
-  ] = value;
+  for(unsigned i=0; i<textureElemSize; i++) {
+    for(unsigned j=0; j<textureElemSize; j++) {
+      vertexTransformCoefs[
+          ((transformIndex*textureElemSize+i) * verticesCount*textureElemSize)
+          + (vertexIndex*textureElemSize+j)
+      ] = value;
+    }
+  }
 }
 
-Renderable * MeshSkeleton::getSkeletonMesh(const glm::vec3 & color, unsigned highlightBoneIndex, const glm::vec3 & colorHighlight) {
-
-  std::vector<glm::vec3> triangles;
-  std::vector<glm::vec3> colors;
+std::vector<Renderable*> & MeshSkeleton::getSkeletonMesh(const glm::vec3 & color, unsigned highlightBoneIndex, const glm::vec3 & colorHighlight) {
+  boneMeshes.clear();
   for(int i=0; i<bones.size(); i++) {
     auto & bone = bones.at(i);
+
+    std::vector<glm::vec3> triangles;
+    std::vector<glm::vec3> colors;
 
     auto v = glm::cross(bone.A-bone.B, glm::vec3(0,0,1));
     v = glm::normalize(v);
     
-    triangles.push_back(bone.A);
-    triangles.push_back(bone.B+glm::vec3(0, 0, 0.02));
-    triangles.push_back(bone.B+glm::vec3(0, 0, -0.02));
+    triangles.push_back(glm::vec3(0));
+    triangles.push_back(bone.B+glm::vec3(0, 0, 0.02)-bone.A);
+    triangles.push_back(bone.B+glm::vec3(0, 0, -0.02)-bone.A);
 
-    triangles.push_back(bone.A);
-    triangles.push_back(bone.B+v*0.02f);
-    triangles.push_back(bone.B+glm::vec3(0, 0, 0.02));
+    triangles.push_back(glm::vec3(0));
+    triangles.push_back(bone.B+v*0.02f-bone.A);
+    triangles.push_back(bone.B+glm::vec3(0, 0, 0.02)-bone.A);
 
-    triangles.push_back(bone.A);
-    triangles.push_back(bone.B+v*0.02f);
-    triangles.push_back(bone.B+glm::vec3(0, 0, -0.02));
+    triangles.push_back(glm::vec3(0));
+    triangles.push_back(bone.B+v*0.02f-bone.A);
+    triangles.push_back(bone.B+glm::vec3(0, 0, -0.02)-bone.A);
     
     if(i==highlightBoneIndex) {
       colors.push_back(colorHighlight);
@@ -140,11 +157,35 @@ Renderable * MeshSkeleton::getSkeletonMesh(const glm::vec3 & color, unsigned hig
       colors.push_back(color);
       colors.push_back(color);
     }
+
+    std::vector<glm::uvec3> faces;
+    Mesh * m = new Mesh(
+      new MeshGeometry(triangles, faces, colors),
+      MeshMaterial::meshGetSimplePhongMaterial(color*0.f, color*0.f, 5)
+    );
+    m->setPosition(bone.A);
+    boneMeshes.push_back(m);
   }
 
-  std::vector<glm::uvec3> faces;
-  return new Mesh(
-    new MeshGeometry(triangles, faces, colors),
-    MeshMaterial::meshGetSimplePhongMaterial(color*0.f, color*0.f, 5)
-  );
+  for(int i=0; i<bones.size(); i++) {
+    auto & bone = bones.at(i);
+    Mesh * mesh = (Mesh*)boneMeshes.at(i);
+    if(bone.parentIndexPlusOne > 0) {
+      mesh->setParent((Mesh*)boneMeshes.at(bone.parentIndexPlusOne-1));
+      mesh->translateMesh(-(mesh->getCompleteParentPosition()));
+    }
+  }
+
+  return boneMeshes;
+}
+
+void MeshSkeleton::rotateBoneArroundA(unsigned boneIndex, const glm::vec3 & angles) {
+
+  glm::mat4 rot = glm::mat4(1);
+  rot = glm::rotate(rot, angles.x, glm::vec3(1.f, 0.f, 0.f));
+  rot = glm::rotate(rot, angles.y, glm::vec3(0.f, 1.f, 0.f));
+  rot = glm::rotate(rot, angles.z, glm::vec3(0.f, 0.f, 1.f));
+  bones.at(boneIndex).mat = rot;
+
+  ((Mesh*)boneMeshes.at(boneIndex))->setOrientation(angles);
 }

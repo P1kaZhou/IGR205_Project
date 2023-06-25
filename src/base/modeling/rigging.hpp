@@ -47,10 +47,16 @@ public:
     Returns the id of the new joint.
     */
     inline unsigned addJoint(const glm::vec3 & point) {
-        joints.push_back(SkeletonJoint(point));
-        lastIDJoint += 1;
-        joints.back().id = lastIDJoint;
-        return lastIDJoint;
+        auto joint = std::find(joints.begin(), joints.end(), SkeletonJoint(point));
+        if(joint == joints.end()) {
+            joints.push_back(SkeletonJoint(point));
+            lastIDJoint += 1;
+            joints.back().id = lastIDJoint;
+            return lastIDJoint;
+        }
+        else {
+            return joint->getId();
+        }
     }
 
     inline void addBone(unsigned jointAId, unsigned jointBId) {

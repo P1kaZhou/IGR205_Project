@@ -18,12 +18,13 @@ uniform mat4 viewMat, projMat, worldMat;
 struct Bone {
     vec3 A;
     mat4 rotationMat;
-    //float weights[1000];
+    uint parentIndexPlusOne;
 };
 
 uniform Bone bones[15];
 uniform uint bonesCount;
 uniform uint verticesCount;
+uniform uint textureElemSize;
 layout(binding=4) uniform sampler2D vertexTransformCoef;
 uniform bool hasBones;
 
@@ -38,15 +39,30 @@ void main() {
     ttt = 0;
     
     if(hasBones) {
+        int center = int(textureElemSize/2);
         for(int b=0; b<bonesCount; b++) {
-            vec2 coefVec = vec2(gl_VertexID/float(verticesCount), b/float(bonesCount));
+            uint vert = gl_VertexID*textureElemSize+center;
+            uint bone = b*textureElemSize+center;
+            vec2 coefVec = vec2(
+                vert/float(verticesCount*textureElemSize),
+                bone/float(bonesCount*textureElemSize)
+            );
             float coef = texture(vertexTransformCoef, coefVec).r;
-            // float coef = bones[b].weights[gl_VertexID];
             if(coef == 1.0) {
                 pos = pos - vec4(bones[b].A, 0.0);
                 pos = bones[b].rotationMat * pos;
                 pos = pos + vec4(bones[b].A, 0.0);
+                
+                Bone parent = bones[b];
+                while(parent.parentIndexPlusOne > 0) {
+                    parent = bones[parent.parentIndexPlusOne-1];
+
+                    pos = pos - vec4(parent.A, 0.0);
+                    pos = parent.rotationMat * pos;
+                    pos = pos + vec4(parent.A, 0.0);
+                }
             }
+
         }
     }
 

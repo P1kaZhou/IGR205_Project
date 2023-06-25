@@ -15,6 +15,10 @@ public:
     SkeletonJoint(const glm::vec3 & point)
     : point(point) {}
 
+    bool operator==(SkeletonJoint const & o) const {
+        return point==o.point;
+    }
+
     // inline void rotateAroundAdjacentJoint(unsigned jointId, glm::vec3 & rotation) {
     //     auto center = getJointById(jointId).point;
     //     rotateAroundPoint(center, rotation);

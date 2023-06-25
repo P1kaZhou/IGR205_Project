@@ -12,9 +12,11 @@
 struct MeshBone {
   glm::vec3 A;
   glm::vec3 B;
-  glm::mat4 rotationMat; // Rotation arround A
+  glm::mat4 mat; // Rotation arround A
 
   std::vector<float> verticesWeights;
+
+  unsigned parentIndexPlusOne;
 };
 
 class MeshSkeleton {
@@ -29,20 +31,23 @@ public:
 
   inline std::vector<MeshBone> & getBones() { return bones; }
 
-  Renderable * getSkeletonMesh(
+  std::vector<Renderable*> & getSkeletonMesh(
     const glm::vec3 & color, unsigned highlightBoneIndex, const glm::vec3 & colorHighlight
   );
+
+  void rotateBoneArroundA(unsigned boneIndex, const glm::vec3 & angles);
 
 private:
   std::vector<MeshBone> bones;
 
   unsigned verticesCount = 0;
 
+  std::vector<Renderable*> boneMeshes;
+
   /*Each row is a transform. each column is a vertex.*/
   float * vertexTransformCoefs = nullptr;
   FloatTexture vertexTransformCoefsTexture;
-
-  GLuint uboCoefs;
+  unsigned textureElemSize = 3;
 };
 
 #endif
