@@ -38,6 +38,9 @@ public:
 
     void extendAxis(MedialAxisGenerator &medialAxisG, std::vector<glm::vec2> &sketchPoints);
 
+    void middleMedialAxis(std::vector<glm::uvec2> chordalAxes, MedialAxisGenerator &medialAxisG,
+                          std::vector<glm::vec2> &sketchPoints);
+
 };
 
 

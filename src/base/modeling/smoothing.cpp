@@ -391,20 +391,20 @@ void smoothing::extendAxis(MedialAxisGenerator &medialAxisG,
 
     std::vector<glm::vec2> pointsToAdd;
 
-    for (auto pointAxis: externalAxisPruned){
+    for (auto pointAxis: externalAxisPruned) {
         glm::vec2 pointToAdd = pointAxis[0];
         pointsToAdd.push_back(pointToAdd);
         glm::vec2 gradient = glm::vec2(0.0f);
         float stepSize = 0.1f; // It's going to change anyway
 
-        int pointAxisSize  = pointAxis.size();
+        int pointAxisSize = pointAxis.size();
         // Compute the cumulative gradient
         int gradientAccuracy = 2;
-        if (pointAxisSize < 2){
+        if (pointAxisSize < 2) {
             gradientAccuracy = 1;
         }
-        for (int i = 1; i < gradientAccuracy + 1; i++){
-            glm::vec2 gradientToAdd = (pointAxis[0] - pointAxis[i])/float(gradientAccuracy);
+        for (int i = 1; i < gradientAccuracy + 1; i++) {
+            glm::vec2 gradientToAdd = (pointAxis[0] - pointAxis[i]) / float(gradientAccuracy);
             gradient += gradientToAdd;
         }
 
@@ -458,4 +458,32 @@ void smoothing::extendAxis(MedialAxisGenerator &medialAxisG,
             addedPoints[n - 1]->addAdj(addedPoints[n - 2]);
         }
     }
+}
+
+void smoothing::middleMedialAxis(std::vector<glm::uvec2> chordalAxes, MedialAxisGenerator &medialAxisG,
+                                 std::vector<glm::vec2> &sketchPoints) {
+
+    // The goal is to modify the medial axis by changing each of their points closer to the center
+
+    MedialAxis &medialAxis = medialAxisG.getMedialAxis();
+    std::vector<MedialAxisPoint *> points = medialAxis.getPoints();
+
+    for (auto axe: chordalAxes){
+        glm::vec2 a = sketchPoints[axe.x];
+        glm::vec2 b = sketchPoints[axe.y];
+        glm::vec2 center = (a + b) / 2.0f;
+        // Get assigned point to the center
+        float minDistance = std::numeric_limits<float>::max();
+        MedialAxisPoint *closestPoint = nullptr;
+        for (auto potentialPoint: points){
+            if (glm::distance(potentialPoint->getPoint(), center) < minDistance){
+                minDistance = glm::distance(potentialPoint->getPoint(), center);
+                closestPoint = potentialPoint;
+            }
+        }
+
+        // Now we have the closest point, we need to move it closer to the center
+
+    }
+
 }
