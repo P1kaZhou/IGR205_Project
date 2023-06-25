@@ -3,6 +3,7 @@
 
 #include <utils.hpp>
 #include <geometry/geometry.hpp>
+#include <texture.hpp>
 
 /*
 Holds geometry data.
@@ -61,6 +62,8 @@ public:
         return boundingBox;
     }
 
+    inline unsigned getVertexPositionsCount() const { return vertexPositions.size(); }
+
     inline unsigned getVertexPositionsVCount() const { return vertexPositions.size()*3; }
     inline unsigned getVertexNormalsVCount() const { return vertexNormals.size()*3; }
     inline unsigned getVertexColorsVCount() const { return vertexColors.size()*3; }
@@ -75,11 +78,6 @@ public:
 
     void normalizeVertexPositions();
 
-
-    void initVerticesTranforms(
-        std::vector<glm::mat4> & vertexTransforms
-    );
-
 private:
     std::vector<glm::vec3> vertexPositions;
     std::vector<glm::vec3> vertexNormals;
@@ -88,9 +86,6 @@ private:
     std::vector<glm::uvec3> faces;
 
     Geometry::BoundingBox::BoundingBox boundingBox;
-
-    std::vector<glm::mat4> vertexTransforms;
-    float * vertexTransformCoefs;
 };
 
 #endif

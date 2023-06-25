@@ -37,7 +37,7 @@ void SkeletonGenerator::compute() {
             jAxis.push_back(junctionTrianglePoint);
             jAxis.push_back(junctionTriangleLinkPoint);
             junctionAxisSkeleton.push_back(jAxis);
-            
+
             rigging.addBone(junctionTriangleJointId, linkPointJointId);
 
             junctionPoints.push_back({junctionTrianglePoint, junctionTriangleJointId});

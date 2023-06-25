@@ -8,8 +8,8 @@ MeshMaterial * MeshMaterial::meshGetSimplePhongMaterial(
   mat->specularColor = specularColor;
   mat->shininess = shininess;
 
-  mat->blankTexture = new Texture2D(nullptr, ImageLoadType::RBG, true);
-  mat->blankTexture->init();
+  mat->blankTexture = new ImageTexture();
+  mat->blankTexture->initFromImage(nullptr, 3, true);
 
   return mat;
 }
@@ -20,8 +20,8 @@ MeshMaterial * MeshMaterial::meshGetBasicMaterial(
   MeshMaterial * mat = new MeshMaterial();
   mat->basicColor = basicColor;
 
-  mat->blankTexture = new Texture2D(nullptr, ImageLoadType::RBG, true);
-  mat->blankTexture->init();
+  mat->blankTexture = new ImageTexture();
+  mat->blankTexture->initFromImage(nullptr, 3, true);
 
   return mat;
 }
@@ -29,15 +29,15 @@ MeshMaterial * MeshMaterial::meshGetBasicMaterial(
 MeshMaterial * MeshMaterial::meshGetSimpleTextureMaterial(
   const char * diffuseMapFilename, const glm::vec3 & specularColor = glm::vec3(), unsigned int shininess = 1
 ) {
-  Texture2D * diffuseMap = new Texture2D(diffuseMapFilename, ImageLoadType::RBG, true);
-  diffuseMap->init();
+  ImageTexture * diffuseMap = new ImageTexture();
+  diffuseMap->initFromImage(diffuseMapFilename, 3, true);
   MeshMaterial * mat = new MeshMaterial();
   mat->setDiffuseMap(diffuseMap);
   mat->specularColor = specularColor;
   mat->shininess = shininess;
 
-  mat->blankTexture = new Texture2D(nullptr, ImageLoadType::RBG, true);
-  mat->blankTexture->init();
+  mat->blankTexture = new ImageTexture();
+  mat->blankTexture->initFromImage(nullptr, 3, true);
 
   return mat;
 }
@@ -45,14 +45,14 @@ MeshMaterial * MeshMaterial::meshGetSimpleTextureMaterial(
 MeshMaterial * MeshMaterial::meshGetBasicTextureMaterial(
   const char * diffuseMapFilename, const glm::vec3 & basicColor
 ) {
-  Texture2D * diffuseMap = new Texture2D(diffuseMapFilename, ImageLoadType::RBG, true);
-  diffuseMap->init();
+  ImageTexture * diffuseMap = new ImageTexture();
+  diffuseMap->initFromImage(diffuseMapFilename, 3, true);
   MeshMaterial * mat = new MeshMaterial();
   mat->setDiffuseMap(diffuseMap);
   mat->basicColor = basicColor;
 
-  mat->blankTexture = new Texture2D(nullptr, ImageLoadType::RBG, true);
-  mat->blankTexture->init();
+  mat->blankTexture = new ImageTexture();
+  mat->blankTexture->initFromImage(nullptr, 3, true);
 
   return mat;
 }
@@ -60,12 +60,12 @@ MeshMaterial * MeshMaterial::meshGetBasicTextureMaterial(
 MeshMaterial * MeshMaterial::meshGetTextureMaterial(
   const char * diffuseMapFilename, const char * specularMapFilename, const char * normalMapFilename, const glm::vec3 & basicColor
 ) {
-  Texture2D * diffuseMap = new Texture2D(diffuseMapFilename, ImageLoadType::RBG, true);
-  diffuseMap->init();
-  Texture2D * specularMap = new Texture2D(specularMapFilename, ImageLoadType::RBG, true);
-  specularMap->init();
-  Texture2D * normalMap = new Texture2D(normalMapFilename, ImageLoadType::RBG, true);
-  normalMap->init();
+  ImageTexture * diffuseMap = new ImageTexture();
+  diffuseMap->initFromImage(diffuseMapFilename, 3, true);
+  ImageTexture * specularMap = new ImageTexture();
+  specularMap->initFromImage(specularMapFilename, 3, true);
+  ImageTexture * normalMap = new ImageTexture();
+  normalMap->initFromImage(normalMapFilename, 3, true);
   
   MeshMaterial * mat = new MeshMaterial();
   mat->setDiffuseMap(diffuseMap);
@@ -73,8 +73,8 @@ MeshMaterial * MeshMaterial::meshGetTextureMaterial(
   mat->setNormalMap(normalMap);
   mat->basicColor = basicColor;
 
-  mat->blankTexture = new Texture2D(nullptr, ImageLoadType::RBG, true);
-  mat->blankTexture->init();
+  mat->blankTexture = new ImageTexture();
+  mat->blankTexture->initFromImage(nullptr, 3, true);
 
   return mat;
 }
@@ -102,7 +102,7 @@ void MeshMaterial::updateUniforms(
     getOpenGLError("uniform diffuse map");
   }
   else {
-    Texture2D::unbind(MAP_TEXTURE_UNIT_DIFFUSE);
+    ImageTexture::unbind(MAP_TEXTURE_UNIT_DIFFUSE);
     //blankTexture->unbind();
   }
   if(specularMap) {
@@ -111,7 +111,7 @@ void MeshMaterial::updateUniforms(
     getOpenGLError("uniform specular map");
   }
   else  {
-    Texture2D::unbind(MAP_TEXTURE_UNIT_SPECULAR);
+    ImageTexture::unbind(MAP_TEXTURE_UNIT_SPECULAR);
     //blankTexture->unbind();
   }
   if(shininessMap) {
@@ -120,7 +120,7 @@ void MeshMaterial::updateUniforms(
     getOpenGLError("uniform shininess map");
   }
   else {
-    Texture2D::unbind(MAP_TEXTURE_UNIT_SHININESS);
+    ImageTexture::unbind(MAP_TEXTURE_UNIT_SHININESS);
     //blankTexture->unbind();
   }
   if(normalMap) {
@@ -129,7 +129,7 @@ void MeshMaterial::updateUniforms(
     getOpenGLError("uniform normal map");
   }
   else {
-    Texture2D::unbind(MAP_TEXTURE_UNIT_NORMAL);
+    ImageTexture::unbind(MAP_TEXTURE_UNIT_NORMAL);
     //blankTexture->unbind();
   }
 }

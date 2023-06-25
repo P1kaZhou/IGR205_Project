@@ -107,4 +107,24 @@ void CylinderGenerator::compute(unsigned circleSampleCount) {
             genFaces.push_back({b, d, c});
         }
     }
+
+    // Close the start of the cylinder.
+    glm::vec3 center;
+    for(unsigned circlePointIndex=0; circlePointIndex<=circleSampleCount; circlePointIndex++) {
+        unsigned indexInCicle_curr_circle = circlePointIndex%circleSampleCount;
+        center += genVertexPos[indexInCicle_curr_circle];
+    }
+    center *= 1.0f/circleSampleCount;
+    genVertexPos.push_back(center);
+    unsigned centerIndex = genVertexPos.size()-1;
+    for(unsigned circlePointIndex=0; circlePointIndex<=circleSampleCount; circlePointIndex++) {
+        unsigned indexInCicle_curr_circle = circlePointIndex%circleSampleCount;
+        unsigned indexInCicle_next_circle = (circlePointIndex+1)%circleSampleCount;
+        
+        // Points on current circle
+        unsigned a = indexInCicle_curr_circle;
+        unsigned b = indexInCicle_next_circle;
+
+        genFaces.push_back({a, b, centerIndex});
+    }
 }

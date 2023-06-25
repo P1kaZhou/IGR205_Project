@@ -319,7 +319,7 @@ void MeshGenerator::compute() {
       builder.drawTriangles(frontPointsPos, trianglesFront, chordColor);
       // builder.drawShape(true, frontPointsPos, shapeColor);
       builder.drawPoints(frontPointsPos, pointColor);
-      builder.save("debug.ppm");
+      builder.save("debug.png");
     }
   }
 

@@ -81,6 +81,7 @@ float CDP::computeError(
     float e2 = glm::min(e2_dTop, e2_dBottom);
 
     float distanceError = Geometry::pointToSegmentDistance(v, start, end);
+    distanceError = distanceError*distanceError;
     float cylindricalError = e1*e1 + e2*e2;
 
     // std::cout << "cylindricalError = " << cylindricalError << std::endl;

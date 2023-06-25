@@ -19,7 +19,7 @@ public:
         vertexSkinWeights[vertexIndice] = weight;
     }
 
-    inline std::map<unsigned, float> & getVertexSkinWeights() { return vertexSkinWeights; }
+    inline const std::map<unsigned, float> & getVertexSkinWeights() const { return vertexSkinWeights; }
 
 private:
     std::map<unsigned, float> vertexSkinWeights;
@@ -48,24 +48,20 @@ public:
     */
     inline unsigned addJoint(const glm::vec3 & point) {
         joints.push_back(SkeletonJoint(point));
-        lastID += 1;
-        joints.back().id = lastID;
-        return lastID;
+        lastIDJoint += 1;
+        joints.back().id = lastIDJoint;
+        return lastIDJoint;
     }
 
     inline void addBone(unsigned jointAId, unsigned jointBId) {
-        bones.push_back(SkeletonBone(
-            getJointById(jointAId),
-            getJointById(jointBId)
-        ));
-    }
+        auto & A = getJointById(jointAId);
+        auto & B = getJointById(jointBId);
+        bones.push_back(SkeletonBone(A, B));
 
-    inline SkeletonJoint & getJointOnRay(const glm::vec3 & direction, const glm::vec3 & startPos) {
-        
-    }
-
-    inline SkeletonBone & getBoneOnRay(const glm::vec3 & direction, const glm::vec3 & startPos) {
-        
+        A.bones.push_back(&bones.back());
+        B.bones.push_back(&bones.back());
+        lastIDBone += 1;
+        bones.back().id = lastIDBone;
     }
 
     inline SkeletonJoint & getJointById(unsigned id) {
@@ -116,7 +112,8 @@ private:
 
     unsigned verticesCount;
 
-    unsigned lastID = 0;
+    unsigned lastIDJoint = 0;
+    unsigned lastIDBone = 0;
 
     inline unsigned getBoneIndexByJointsId(unsigned jointAId, unsigned jointBId) {
         for(unsigned i=0; i<bones.size(); i++) {
