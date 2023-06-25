@@ -24,6 +24,14 @@ void Mesh::render(Renderer & renderer, GLuint program = 0,
     renderer.getLights()[i]->updateUniforms(program, i);
   }
 
+  if(skeleton!=nullptr) {
+    skeleton->updateUniform(program);
+    glUniform1i(glGetUniformLocation(program, "hasBones"), true);
+  }
+  else {
+    glUniform1i(glGetUniformLocation(program, "hasBones"), false);
+  }
+
   glBindVertexArray(m_vao);
   if(geometry->getFaces().size() > 0) {
     glDrawElements(GL_TRIANGLES, geometry->getFacesVCount(), GL_UNSIGNED_INT, 0);
@@ -145,7 +153,9 @@ void Mesh::init() {
   }
 
   glBindVertexArray(0);
+  
   isInitiliazed = true;
+
 }
 
 void update(const float currentTimeInSec, Renderer renderer) {

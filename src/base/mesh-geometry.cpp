@@ -410,9 +410,3 @@ void MeshGeometry::normalizeVertexPositions() {
         };
     }
 }
-
-void MeshGeometry::initVerticesTranforms(
-    std::vector<glm::mat4> & vertexTransforms
-) {
-    
-}

@@ -7,6 +7,7 @@
 #include <mesh-material.hpp>
 #include <mesh-group.hpp>
 #include <geometry/geometry.hpp>
+#include <mesh-skeleton.hpp>
 
 /*
 Holds a mesh:
@@ -52,8 +53,8 @@ public:
 
     inline bool isMeshhInitialized() override { return isInitiliazed; }
 
-    inline const MeshGeometry * getGeometry() { return geometry; }
-    inline const MeshMaterial * getMaterial() { return material; }
+    inline MeshGeometry * getGeometry() { return geometry; }
+    inline MeshMaterial * getMaterial() { return material; }
 
     inline const Geometry::BoundingBox::BoundingBox & getBoundingBox() override {
         return geometry->getBoundingBox();
@@ -61,6 +62,10 @@ public:
 
     inline glm::mat4 getWorldTransform() override {
         return getWorldMatrix();
+    }
+
+    inline void setSkeleton(MeshSkeleton * skeleton) {
+        this->skeleton = skeleton;
     }
 
 protected:
@@ -74,6 +79,7 @@ protected:
 
     MeshGeometry * geometry = nullptr;
     MeshMaterial * material = nullptr;
+    MeshSkeleton * skeleton = nullptr;
     GLuint m_vao = 0;
     GLuint m_posVbo = 0;
     GLuint m_normalVbo = 0;

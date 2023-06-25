@@ -21,6 +21,7 @@
 #include <modeling/skining-generator.hpp>
 #include <modeling/chords-generator.hpp>
 #include <modeling/mesh-generator.hpp>
+#include <mesh-skeleton.hpp>
 
 #include <modeling/rigging-mesh.hpp>
 
@@ -280,6 +281,7 @@ glm::vec3 skeletonMeshColorHighLight = {255, 255, 255};
 
 Mesh * skeletonMesh = nullptr;
 Mesh * generatedMesh = nullptr;
+MeshSkeleton * generatedMeshSkeleton = nullptr;
 
 float cdp_threshold = 0.5;
 float importanceCylindricalError = 1.0f;
@@ -306,6 +308,13 @@ void testPipeline(
   Shape shape
 ) {
 
+  {
+    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
+    builder.drawShape(true, shape.getFullPoints(), shapeColor);
+    builder.drawPoints(shape.getFullPoints(), shapePointColor);
+    builder.save("im-000-shape.png");
+  }
+
   // Delaunay constrained triangulation
   ConstrainedDelaunayTriangulation2D d(shape.getSubSampledPoints());
   auto trianglesSub = d.getTriangles();
@@ -317,7 +326,7 @@ void testPipeline(
     builder.drawTriangles(shape.getFullPoints(), triangles, chordColor);
     builder.drawShape(true, shape.getFullPoints(), shapeColor);
     builder.drawPoints(shape.getFullPoints(), shapePointColor);
-    builder.save("01-delaunay.ppm");
+    builder.save("im-010-delaunay-triangulation.png");
   }
 
   // The raw medial axis
@@ -326,15 +335,15 @@ void testPipeline(
   auto midPoints = medial.computeMidPoints();
   for(unsigned i=0; i<3; i++){
     if(i==1) {
-      // for(int ii=1; ii<=ma_prun_count; ii++) {
-      //   // medial.pruning(ma_prun_depth*(ii/ma_prun_count));
-      //   medial.pruning(ma_prun_depth);
-      // }
+      for(int ii=1; ii<=ma_prun_count; ii++) {
+        // medial.pruning(ma_prun_depth*(ii/ma_prun_count));
+        medial.pruning(ma_prun_depth);
+      }
 
-      smoothing s;
-      s.insignificantBranchesRemoval(
-        medial, pruning__threshold, triangles, shape.getSubSampledPoints()
-      );
+      // smoothing s;
+      // s.insignificantBranchesRemoval(
+      //   medial, pruning__threshold, triangles, shape.getSubSampledPoints()
+      // );
 
     }
     if(i==2) {
@@ -355,13 +364,14 @@ void testPipeline(
     Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
     builder.addExtraPoints(shape.getFullPoints());
     builder.addExtraPoints(pointsSeg);
+    if(i==0) builder.drawTriangles(shape.getFullPoints(), triangles, chordColor);
     builder.drawSegments(segments, axisColor);
     builder.drawPoints(pointsSeg, axisPointColor);
     builder.drawShape(true, shape.getFullPoints(), shapeColor);
     builder.drawPoints(shape.getFullPoints(), shapePointColor);
-    if(i==0) builder.save("02-medial-axis.ppm");
-    if(i==1) builder.save("02-medial-axis-pruning.ppm");
-    if(i==2) builder.save("02-medial-axis-pruning-smoothed.ppm");
+    if(i==0) builder.save("im-020-raw-medial-axis.png");
+    if(i==1) builder.save("im-030-pruned-medial-axis.png");
+    if(i==2) builder.save("im-040-pruned-smoothed-medial-axis.png");
   }
 
   // External axis of the medial axis tree
@@ -375,7 +385,7 @@ void testPipeline(
     }
     builder.drawShape(true, shape.getFullPoints(), shapeColor);
     builder.drawPoints(shape.getFullPoints(), shapePointColor);
-    builder.save("03-external-medial-axis.ppm");
+    builder.save("im-050-external-medial-axis.png");
   }
   // Internal axis of the medial axis tree
   auto internalAxis = medial.extractInternalAxis();
@@ -388,7 +398,7 @@ void testPipeline(
     }
     builder.drawShape(true, shape.getFullPoints(), shapeColor);
     builder.drawPoints(shape.getFullPoints(), shapePointColor);
-    builder.save("03-internal-medial-axis.ppm");
+    builder.save("im-060-internal-medial-axis.png");
   }
 
   ChordsGenerator chordsGen(
@@ -414,34 +424,8 @@ void testPipeline(
 
     builder.drawShape(true, shape.getFullPoints(), shapeColor);
     builder.drawPoints(shape.getFullPoints(), shapePointColor);
-    builder.save("03-medial-axis-chords.ppm");
+    builder.save("im-070-chords.png");
   }
-
-  // std::vector<glm::vec3> meshVertices;
-  // std::vector<glm::uvec3> meshFaces;
-  // for(auto axis : externalAxis) {
-  //   std::vector<glm::vec2> axisWithoutJunctionPoint;
-  //   axisWithoutJunctionPoint.insert(
-  //     axisWithoutJunctionPoint.begin(), axis.begin(), axis.begin()+axis.size()-2
-  //   );
-  //   CylinderGenerator cylGen(
-  //     axisWithoutJunctionPoint,
-  //     shape.getFullPoints(), optiChords, axisPointToChord
-  //   );
-  //   cylGen.compute(cylinder_sampling);
-  //   for(auto f : cylGen.getFaces()) {
-  //     meshFaces.push_back({
-  //       f.x + meshVertices.size(),
-  //       f.y + meshVertices.size(),
-  //       f.z + meshVertices.size()
-  //     });
-  //   }
-  //   meshVertices.insert(
-  //     meshVertices.end(),
-  //     cylGen.getVertexPos().begin(),
-  //     cylGen.getVertexPos().end()
-  //   );
-  // }
 
   // Mesh vertices and faces
 
@@ -495,6 +479,19 @@ void testPipeline(
         MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.01f, cylinderMeshColor*0.001f, 1)
       );
     }
+
+    generatedMeshSkeleton = new MeshSkeleton(rigging);
+    for(unsigned b=0; b<generatedMeshSkeleton->getBones().size(); b++) {
+      for(unsigned v=0; v<generatedMesh->getGeometry()->getVertexPositions().size(); v++) {
+        auto coef = rigging.getBonesSkins().at(b).getVertexSkinWeights().at(v);
+        generatedMeshSkeleton->setVerticesCoef(
+          b, v, coef
+        );
+      }
+    }
+    generatedMeshSkeleton->initVerticesTranformsCoef();
+    generatedMesh->setSkeleton(generatedMeshSkeleton);
+    
     renderer->addRenderable(generatedMesh);
   }
 
@@ -502,8 +499,8 @@ void testPipeline(
     renderer->removeRenderable(skeletonMesh);
   }
   if(show_skeleton) {
-    skeletonMesh = RiggingMesh::createRiggingSkeletonMesh(
-      skelGen.getRigging(), focus_bone_index, skeletonMeshColor, skeletonMeshColorHighLight
+    skeletonMesh = (Mesh*) generatedMeshSkeleton->getSkeletonMesh(
+      skeletonMeshColor, focus_bone_index, skeletonMeshColorHighLight
     );
     skeletonMesh->setDepthTest(false);
     renderer->addRenderable(skeletonMesh);
@@ -527,7 +524,7 @@ void testPipeline(
     builder.drawSegments(bones2D, skeletonColor0);
     builder.drawShape(true, shape.getFullPoints(), shapeColor);
     builder.drawPoints(shape.getFullPoints(), shapePointColor);
-    builder.save("04-skeleton.ppm");
+    builder.save("im-080-skeleton.png");
   }
   {
     Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
@@ -546,7 +543,7 @@ void testPipeline(
     }
     builder.drawShape(true, shape.getFullPoints(), shapeColor);
     builder.drawPoints(shape.getFullPoints(), shapePointColor);
-    builder.save("04-skeleton-details.ppm");
+    builder.save("im-090-skeleton-details.png");
   }
 
 }
@@ -555,6 +552,8 @@ float cameraNear = 0.1f;
 float cameraFar = 10.0f;
 
 bool withFaceCull = false;
+
+float bone_rotation = 0;
 
 void renderImGui() {
   ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -616,6 +615,28 @@ void renderImGui() {
     // if (controllerMode == FPS) { ImGui::Text("FPS"); }
     // if (controllerMode == CAM) { ImGui::Text("CAM"); }
 
+    if (ImGui::Button("Mesh STL file") && generatedMesh) {
+      writeSTL(
+        "mesh.stl",
+        generatedMesh->getGeometry()->getFaces(),
+        generatedMesh->getGeometry()->getVertexPositions());
+    }
+    if (ImGui::Button("Skeleton STL file") && skeletonMesh) {
+      writeSTL(
+        "skeleton.stl",
+        skeletonMesh->getGeometry()->getFaces(),
+        skeletonMesh->getGeometry()->getVertexPositions());
+    }
+
+    ImGui::SliderFloat("angle", &bone_rotation, 0.0f, 2.0f);
+    if(ImGui::Button("Rotate")) {
+      if(generatedMesh && bones_count>0) {
+        glm::mat4 & rot = generatedMeshSkeleton->getBones().at(focus_bone_index).rotationMat;
+        showMatrix(rot);
+        rot = glm::rotate(rot, bone_rotation, glm::vec3(0.f, 0.f, 1.f));
+      }
+    }
+
     ImGui::End();
   }
 
@@ -671,6 +692,13 @@ int main(int argc, char ** argv) {
   );
   plane->setPosition(planePos);
   renderer->addRenderable(plane);
+
+  // Mesh * cube = new Mesh(
+  //   MeshGeometry::meshGetSphereData(1, 20, 20, nullptr),
+  //   MeshMaterial::meshGetBasicTextureMaterial("media/earth.jpg", planeColor*0.f)
+  // );
+  // cube->setPosition(planePos);
+  // renderer->addRenderable(cube);
 
   initImGui();
 

@@ -62,28 +62,28 @@ public:
         this->shininess = shininess;
         return this; }
 
-    inline MeshMaterial * setDiffuseMap(Texture2D * diffuseMap) {
+    inline MeshMaterial * setDiffuseMap(ImageTexture * diffuseMap) {
         if(diffuseMap->getComponentCount() == 3)  {
             if(this->diffuseMap) delete this->diffuseMap;
             this->diffuseMap = diffuseMap;
         }
         return this;
     }
-    inline MeshMaterial * setSpecularMap(Texture2D * specularMap) {
+    inline MeshMaterial * setSpecularMap(ImageTexture * specularMap) {
         if(specularMap->getComponentCount() == 3)  {
             if(this->specularMap) delete this->specularMap;
             this->specularMap = specularMap;
         }
         return this;
     }
-    inline MeshMaterial * setShininessMap(Texture2D * shininessMap) {
+    inline MeshMaterial * setShininessMap(ImageTexture * shininessMap) {
         if(shininessMap->getComponentCount() == 1)  {
             if(this->shininessMap) delete this->shininessMap;
             this->shininessMap = shininessMap;
         }
         return this;
     }
-    inline MeshMaterial * setNormalMap(Texture2D * normalMap) {
+    inline MeshMaterial * setNormalMap(ImageTexture * normalMap) {
         if(normalMap->getComponentCount() == 3)  {
             if(this->normalMap) delete this->normalMap;
             this->normalMap = normalMap;
@@ -97,12 +97,12 @@ protected:
     glm::vec3 specularColor = glm::vec3(0); // rgb
     unsigned int shininess = 1; // i
 
-    Texture2D * diffuseMap = nullptr; // rgb
-    Texture2D * specularMap = nullptr; // rgb
-    Texture2D * shininessMap = nullptr; // i
-    Texture2D * normalMap = nullptr; // xyz
+    ImageTexture * diffuseMap = nullptr; // rgb
+    ImageTexture * specularMap = nullptr; // rgb
+    ImageTexture * shininessMap = nullptr; // i
+    ImageTexture * normalMap = nullptr; // xyz
 
-    Texture2D * blankTexture = nullptr; // rgb
+    ImageTexture * blankTexture = nullptr; // rgb
 
 };
 

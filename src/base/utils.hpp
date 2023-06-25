@@ -142,7 +142,7 @@ inline void writePPMImage(const std::string & filename, const int width, const i
 /*Function to write STL file.*/
 inline void writeSTL(
     std::string filename,
-    const std::vector<glm::ivec3> & faces,
+    const std::vector<glm::uvec3> & faces,
     const std::vector<glm::vec3> & vertices
 ) {
     std::ofstream out(filename);

@@ -55,8 +55,10 @@ target_sources(
         base/program.cpp
         base/animation.cpp
         base/frame-buffer.cpp
+        base/mesh-skeleton.cpp
 
         base/geometry/geometry.cpp
+        base/geometry/draw-2d.cpp
 
         base/modeling/medial-axis.cpp
         base/modeling/medial-axis-generator.cpp
