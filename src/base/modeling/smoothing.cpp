@@ -419,15 +419,30 @@ void smoothing::extendAxis(MedialAxisGenerator &medialAxisG,
         float t1, t2;
         glm::vec2 intersectionPoint;
 
+        std::map<float, float> tmap;
         for (int i = 0; i < sketchPoints.size(); i++) {
             glm::vec2 a = sketchPoints[i];
             glm::vec2 b = sketchPoints[(i + 1) % sketchPoints.size()];
             Geometry::lineToLineIntersectionCoef(pointToAdd, gradient, a, b - a, t1, t2);
             if (t2 > 0.0f && t2 < 1.0f) {
-                intersectionPoint = a + t2 * (b - a);
-                break;
+                tmap[t1] = t2;
             }
         }
+
+        // get the smallest key
+        float smallestKey = tmap.begin()->first;
+        float smallestValue = tmap.begin()->second;
+        for (auto it = tmap.begin(); it != tmap.end(); it++) {
+            if (it->first < smallestKey) {
+                smallestKey = it->first;
+                smallestValue = it->second;
+            }
+        }
+
+        t1 = smallestKey;
+        t2 = smallestValue;
+
+        intersectionPoint = pointToAdd + gradient * t1;
 
         // as for now
         int numberOfPointsToAdd = int(t1 / stepSize);
