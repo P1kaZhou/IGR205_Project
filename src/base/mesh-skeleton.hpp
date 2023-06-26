@@ -32,7 +32,7 @@ public:
   inline std::vector<MeshBone> & getBones() { return bones; }
 
   std::vector<Renderable*> & getSkeletonMesh(
-    const glm::vec3 & color, unsigned highlightBoneIndex, const glm::vec3 & colorHighlight
+    const glm::vec3 & color
   );
 
   void rotateBoneArroundA(unsigned boneIndex, const glm::vec3 & angles);

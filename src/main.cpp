@@ -258,9 +258,9 @@ bool show_demo_window = true;
 bool show_another_window = false;
 ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-ControllerMode controllerMode = ControllerMode::NONE;
+ControllerMode controllerMode = ControllerMode::CAM;
 
-bool drawing_render_3d = false;
+bool drawing_render = true;
 
 int im_resolution_w = 200;
 int im_resolution_h = 200;
@@ -501,13 +501,12 @@ void testPipeline(
       renderer->removeRenderable(m);
   }
   if(show_skeleton) {
-    skeletonMesh = generatedMeshSkeleton->getSkeletonMesh(
-      skeletonMeshColor, focus_bone_index, skeletonMeshColorHighLight
-    );
+    skeletonMesh = generatedMeshSkeleton->getSkeletonMesh(skeletonMeshColor);
     for(auto m : skeletonMesh) {
       m->setDepthTest(false);
       renderer->addRenderable(m);
     }
+    ((Mesh*)skeletonMesh.at(focus_bone_index))->getMaterial()->setBasicColor(skeletonMeshColorHighLight);
   }
 
 
@@ -573,65 +572,81 @@ void renderImGui() {
 
     ImGui::Begin("Sketchy !");
 
-    ImGui::SliderFloat("Cam near", &cameraNear, 0.1f, 10.0f);
-    ImGui::SliderFloat("Cam far", &cameraFar, 1.0f, 100.0f);
-    ImGui::Checkbox("Face culling", &withFaceCull);
+    ImGui::Text("Camera & rendering");
+    ImGui::SliderFloat("Near", &cameraNear, 0.1f, 10.0f);
+    ImGui::SliderFloat("Far", &cameraFar, 1.0f, 100.0f);
+    ImGui::Checkbox("Face Cull", &withFaceCull);
+    ImGui::Separator();
 
-    // ImGui::Text("counter = %d", counter);
-    // ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-
+    ImGui::Text("Camera type");
     if (ImGui::RadioButton("FIXED", controllerMode == NONE)) { controllerMode = NONE; } ImGui::SameLine();
     if (ImGui::RadioButton("FPS", controllerMode == FPS)) { controllerMode = FPS; } ImGui::SameLine();
     if (ImGui::RadioButton("CAM", controllerMode == CAM)) { controllerMode = CAM; }
-
-    ImGui::Checkbox("3D drawing", &drawing_render_3d);
+    ImGui::Checkbox("Display drawing", &drawing_render);
+    ImGui::Separator();
 
     // Cylindrical Douglas-Peucker threshold
-    ImGui::SliderFloat("CDP threshold", &cdp_threshold, 0.0f, 2.0f);
-    ImGui::SliderFloat("CDP c error", &importanceCylindricalError, 0.0f, 1.0f);
-    ImGui::SliderFloat("CDP d error", &importanceDistanceError, 0.0f, 1.0f);
-    ImGui::SliderInt("prunning thresh", &ma_prun_depth, 3, 60);
-    ImGui::SliderInt("nbr of prunning", &ma_prun_count, 1, 10);
-    ImGui::SliderFloat("PRUNING threshold", &pruning__threshold, 0.0f, 1.0f);
-    ImGui::SliderInt("sub sampling", &sub_sampling, 1, 50);
-    ImGui::SliderInt("cylinder sampling", &cylinder_sampling, 1, 100);
-    ImGui::SliderInt("smooth mask size", &smooth_mask_size, 1, 10);
+    ImGui::Text("Douglas-Peucker");
+    ImGui::SliderFloat("global threshold", &cdp_threshold, 0.0f, 2.0f);
+    ImGui::SliderFloat("Cyl error weight", &importanceCylindricalError, 0.0f, 1.0f);
+    ImGui::SliderFloat("Dist error weight", &importanceDistanceError, 0.0f, 1.0f);
+    ImGui::Separator();
 
+    ImGui::Text("Medial axis");
+    // ImGui::SliderInt("prunning thresh", &ma_prun_depth, 3, 60);
+    // ImGui::SliderInt("nbr of prunning", &ma_prun_count, 1, 10);
+    ImGui::SliderFloat("Pruning threshold", &pruning__threshold, 0.0f, 1.0f);
+    ImGui::SliderInt("Smoothing size", &smooth_mask_size, 1, 10);
+    ImGui::SliderInt("Shape sampling", &sub_sampling, 1, 50);
+    ImGui::Separator();
+
+    ImGui::Text("3D Generation");
+    ImGui::SliderInt("Cylinder sampling", &cylinder_sampling, 1, 100);
+
+    ImGui::Text("Debug Images");
     ImGui::SliderInt("resolution w", &im_resolution_w, 100, 2000);
     ImGui::SliderInt("resolution h", &im_resolution_h, 100, 2000);
+    ImGui::Separator();
 
-    ImGui::Text("Bones count = %d", bones_count);
-    ImGui::SliderInt("Select bone", &focus_bone_index, 0, bones_count);
-
-    // Perform skeleton computation on shape
-    if (ImGui::Button("Medial axis")) {
+    ImGui::Text("Pipeline");
+    if (ImGui::Button("START")) {
       std::vector<glm::vec2> points;
       for(auto p : drawing->getDrawing(drawing->drawingCount()-1)) {
         points.emplace_back(p.x, p.y);
       }
       Shape shape(sub_sampling, points);
       testPipeline(shape);
-    }
-
+    } ImGui::SameLine(); ImGui::Text("<---------------------------------------------");
     ImGui::Checkbox("Show skeleton", &show_skeleton);
     ImGui::Checkbox("Show mesh", &show_mesh);
+    ImGui::Separator();
 
-    // if (controllerMode == FPS) { ImGui::Text("FPS"); }
-    // if (controllerMode == CAM) { ImGui::Text("CAM"); }
-
-    if (ImGui::Button("Mesh STL file") && generatedMesh) {
+    ImGui::Text("Meshes");
+    if(ImGui::Button("Mesh STL file") && generatedMesh) {
       writeSTL(
         "mesh.stl",
         generatedMesh->getGeometry()->getFaces(),
         generatedMesh->getGeometry()->getVertexPositions());
     }
-    // if (ImGui::Button("Skeleton STL file") && skeletonMesh) {
+    // if(ImGui::Button("Skeleton STL file") && skeletonMesh) {
     //   writeSTL(
     //     "skeleton.stl",
     //     skeletonMesh->getGeometry()->getFaces(),
     //     skeletonMesh->getGeometry()->getVertexPositions());
     // }
+    ImGui::Separator();
 
+    ImGui::Text("Skeleton");
+    ImGui::Text("Bones count = %d", bones_count);
+    int prev_focus_bone_index = focus_bone_index;
+    ImGui::SliderInt("Select bone", &focus_bone_index, 0, bones_count-1);
+    if(focus_bone_index != prev_focus_bone_index) {
+      for(unsigned i=0; i<bones_count; i++) {
+        ((Mesh*)skeletonMesh.at(i))->getMaterial()->setBasicColor(skeletonMeshColor);
+      }
+      ((Mesh*)skeletonMesh.at(focus_bone_index))->getMaterial()->setBasicColor(skeletonMeshColorHighLight);
+    }
+    // X axis
     if(ImGui::Button("RotateX+")) {
       if(generatedMesh && bones_count>0) {
         bone_rotation.x += M_PI*0.1;
@@ -645,7 +660,7 @@ void renderImGui() {
         generatedMeshSkeleton->rotateBoneArroundA(focus_bone_index, bone_rotation);
       }
     }
-
+    // Y axis
     if(ImGui::Button("RotateY+")) {
       if(generatedMesh && bones_count>0) {
         bone_rotation.y += M_PI*0.1;
@@ -659,7 +674,7 @@ void renderImGui() {
         generatedMeshSkeleton->rotateBoneArroundA(focus_bone_index, bone_rotation);
       }
     }
-
+    // Z axis
     if(ImGui::Button("RotateZ+")) {
       if(generatedMesh && bones_count>0) {
         bone_rotation.z += M_PI*0.1;
@@ -673,6 +688,7 @@ void renderImGui() {
         generatedMeshSkeleton->rotateBoneArroundA(focus_bone_index, bone_rotation);
       }
     }
+    ImGui::Separator();
 
     ImGui::End();
   }
@@ -698,7 +714,8 @@ glm::vec3 planePos = {0.f, -1.f, 0.f};
 
 glm::vec3 lightColor = {1.f, 1.f, 1.f};
 glm::vec3 lightMeshColor = {1.f, 1.f, 1.f};
-glm::vec3 lightPos = {0, 1, 1};
+glm::vec3 lightPos1 = {0, 1, 1};
+glm::vec3 lightPos2 = {0, 1, -1};
 
 int main(int argc, char ** argv) {
 
@@ -715,20 +732,18 @@ int main(int argc, char ** argv) {
   drawing = new Drawing();
 
   renderer->addLight(Light::lightGetConstantCaster(
-    lightPos, lightColor*0.001f, lightColor, lightColor
+    lightPos1, lightColor*0.001f, lightColor, lightColor*0.f
   ));
-  Mesh * lightMesh = new Mesh(
-    MeshGeometry::meshGetSphereData(0.1, 20, 20, nullptr),
-    MeshMaterial::meshGetBasicMaterial(lightMeshColor)
-  );
-  lightMesh->setPosition(lightPos);
-  renderer->addRenderable(lightMesh);
-  Mesh * plane = new Mesh(
-    MeshGeometry::meshGetPlaneData(50, 50, nullptr),
-    MeshMaterial::meshGetSimplePhongMaterial(planeColor, planeColor, 10)
-  );
-  plane->setPosition(planePos);
-  renderer->addRenderable(plane);
+  renderer->addLight(Light::lightGetConstantCaster(
+    lightPos2, lightColor*0.001f, lightColor, lightColor*0.f
+  ));
+
+  // Mesh * plane = new Mesh(
+  //   MeshGeometry::meshGetPlaneData(50, 50, nullptr),
+  //   MeshMaterial::meshGetSimplePhongMaterial(planeColor, planeColor, 10)
+  // );
+  // plane->setPosition(planePos);
+  // renderer->addRenderable(plane);
 
   // Mesh * cube = new Mesh(
   //   MeshGeometry::meshGetSphereData(1, 20, 20, nullptr),
@@ -753,13 +768,7 @@ int main(int argc, char ** argv) {
     renderer->faceCulling(withFaceCull);
     camController->update(delta);
 
-    if(drawing_render_3d) {
-      drawing->render3D(
-        renderer->getCamera().computeProjectionMatrix(),
-        renderer->getCamera().computeViewMatrix()
-      );
-    }
-    else {
+    if(drawing_render) {
       drawing->render2D();
     }
     

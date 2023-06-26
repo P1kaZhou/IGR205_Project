@@ -112,7 +112,7 @@ void MeshSkeleton::setVerticesCoef(unsigned transformIndex, unsigned vertexIndex
   }
 }
 
-std::vector<Renderable*> & MeshSkeleton::getSkeletonMesh(const glm::vec3 & color, unsigned highlightBoneIndex, const glm::vec3 & colorHighlight) {
+std::vector<Renderable*> & MeshSkeleton::getSkeletonMesh(const glm::vec3 & color) {
   boneMeshes.clear();
   for(int i=0; i<bones.size(); i++) {
     auto & bone = bones.at(i);
@@ -135,29 +135,16 @@ std::vector<Renderable*> & MeshSkeleton::getSkeletonMesh(const glm::vec3 & color
     triangles.push_back(bone.B+v*0.02f-bone.A);
     triangles.push_back(bone.B+glm::vec3(0, 0, -0.02)-bone.A);
     
-    if(i==highlightBoneIndex) {
-      colors.push_back(colorHighlight);
-      colors.push_back(colorHighlight);
-      colors.push_back(colorHighlight);
-      colors.push_back(colorHighlight);
-      colors.push_back(colorHighlight);
-      colors.push_back(colorHighlight);
-      colors.push_back(colorHighlight);
-      colors.push_back(colorHighlight);
-      colors.push_back(colorHighlight);
-    }
-    else {
-      colors.push_back(color);
-      colors.push_back(color);
-      colors.push_back(color);
-      colors.push_back(color);
-      colors.push_back(color);
-      colors.push_back(color);
-      colors.push_back(color);
-      colors.push_back(color);
-      colors.push_back(color);
-    }
-
+    colors.push_back(color);
+    colors.push_back(color);
+    colors.push_back(color);
+    colors.push_back(color);
+    colors.push_back(color);
+    colors.push_back(color);
+    colors.push_back(color);
+    colors.push_back(color);
+    colors.push_back(color);
+    
     std::vector<glm::uvec3> faces;
     Mesh * m = new Mesh(
       new MeshGeometry(triangles, faces, colors),
