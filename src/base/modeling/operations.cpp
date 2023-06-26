@@ -305,6 +305,27 @@ void operations::mergeCustom(std::vector<glm::vec3> &positions1, std::vector<glm
         }
     }
 
+    std::vector<glm::vec3> allRemovedPoints;
+
+    for (auto index: removedIndexes1) {
+        allRemovedPoints.push_back(positions1[index]);
+    }
+    for (auto index: removedIndexes2) {
+        allRemovedPoints.push_back(positions2[index]);
+    }
+
+    glm::vec3 middlePoint;
+    for (auto point: allRemovedPoints) {
+        middlePoint += point;
+    }
+    middlePoint /= (newpositions1.size() + newpositions2.size());
+
+    float avgDist = 0.f;
+    for (auto point: allRemovedPoints) {
+        avgDist += glm::distance(point, middlePoint);
+    }
+    avgDist /= (newpositions1.size() + newpositions2.size());
+
     // 2. do the same for triangles
 
     // 2.1. Mesh 1
@@ -448,4 +469,102 @@ void operations::mergeCustom(std::vector<glm::vec3> &positions1, std::vector<glm
     newfaces1.insert(newfaces1.end(), newfaces2.begin(), newfaces2.end());
 
     // 5. Apply either a localized smoothing or a global smoothing
+
+    // Localized smoothing
+
+    std::set<unsigned int> smoothedPoints;
+    const float SMOOTH_DIST_THRESHOLD = 0.6;
+    for (auto triangle: newfaces1) {
+        unsigned a = triangle.x;
+        glm::vec3 pta = newpositions1[a];
+        unsigned b = triangle.y;
+        glm::vec3 ptb = newpositions1[b];
+        unsigned c = triangle.z;
+        glm::vec3 ptc = newpositions1[c];
+
+        for (auto removedPoint: allRemovedPoints) {
+            if (glm::distance(pta, removedPoint) < SMOOTH_DIST_THRESHOLD * avgDist) {
+                smoothedPoints.insert(a);
+            }
+            if (glm::distance(ptb, removedPoint) < SMOOTH_DIST_THRESHOLD * avgDist) {
+                smoothedPoints.insert(b);
+            }
+            if (glm::distance(ptc, removedPoint) < SMOOTH_DIST_THRESHOLD * avgDist) {
+                smoothedPoints.insert(c);
+            }
+        }
+    }
+
+    // At this point we now have a set of points on which we apply the localized smoothing
+
+    // Get the neighbors of the points we need to smooth
+    std::map<unsigned, std::set<unsigned>> neighborsMap;
+    for (int tIt = 0; tIt < newfaces1.size(); tIt++) {
+        unsigned int a = newfaces1[tIt][0];
+        unsigned int b = newfaces1[tIt][1];
+        unsigned int c = newfaces1[tIt][2];
+
+        if (smoothedPoints.find(a) != smoothedPoints.end()) {
+            neighborsMap[a].insert(b);
+            neighborsMap[a].insert(c);
+        }
+        if (smoothedPoints.find(b) != smoothedPoints.end()) {
+            neighborsMap[b].insert(c);
+            neighborsMap[b].insert(a);
+        }
+
+        if (smoothedPoints.find(c) != smoothedPoints.end()) {
+            neighborsMap[c].insert(b);
+            neighborsMap[c].insert(a);
+        }
+
+    } // The neighboring matrix is now complete
+
+    const float LAMBDA = 0.33;
+    const float MU = -0.34;
+
+    std::map<unsigned, glm::vec3> newSmoothedPositions;
+
+    for (auto newSmoothIndex: smoothedPoints) {
+        std::set<unsigned> neighbors = neighborsMap[newSmoothIndex];
+        glm::vec3 newPoint;
+
+        // Lambda multiplication
+
+        newPoint = (1 - LAMBDA) * newpositions1[newSmoothIndex];
+        for (auto otherIndex: neighbors) {
+            newPoint += LAMBDA * newpositions1[otherIndex];
+        }
+
+        newSmoothedPositions[newSmoothIndex] = newPoint;
+
+    }
+
+    // Mu multiplication
+    for (auto newSmoothIndex: smoothedPoints) {
+        std::set<unsigned> neighbors = neighborsMap[newSmoothIndex];
+        glm::vec3 newPoint = (1 - MU) * newSmoothedPositions[newSmoothIndex];
+        for (auto otherIndex: neighbors) {
+            if (newSmoothedPositions.find(otherIndex) == newSmoothedPositions.end()) {
+                // Not found
+                newPoint += MU * newpositions1[otherIndex];
+            } else {
+                // Point changed
+                newPoint += MU * newSmoothedPositions[otherIndex];
+            }
+        }
+
+        newSmoothedPositions[newSmoothIndex] = newPoint;
+    }
+
+    for (auto smoothedPointToChange: newSmoothedPositions) {
+
+        int index = smoothedPointToChange.first;
+        glm::vec3 point = smoothedPointToChange.second;
+
+        newpositions1[index] = point;
+
+    }
 }
+
+
