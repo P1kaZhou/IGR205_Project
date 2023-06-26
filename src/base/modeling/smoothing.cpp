@@ -190,8 +190,10 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
         } // Iteration over the triangles ends here
 
         trianglesToRemove.push_back(triangleToRemove);
+        bool found = false;
         const float CLOSE_ENOUGH = 1.f; // Something small is relevant considering they should "perfectly match<"
         if (minDistance < CLOSE_ENOUGH) {
+            found = true;
             // Compute the ratio of morphological significance
             float morpho = glm::distance(firstPoint, lastPoint) /
                            glm::distance(sketchPoints[triangleEdge[0]], sketchPoints[triangleEdge[1]]);
@@ -204,6 +206,16 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
                     }
                     i++;
                 }
+            }
+        }
+
+        if (!found) {
+            unsigned i = 0;
+            for (auto a: axis) {
+                if (i < axis.size() - 1) {
+                    medialAxis.removePoint(a);
+                }
+                i++;
             }
         }
     }
