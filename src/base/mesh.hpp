@@ -68,6 +68,8 @@ public:
         this->skeleton = skeleton;
     }
 
+    bool shouldRender = true;
+
 protected:
     void initVertexPositions();
     void initVertexNormals();

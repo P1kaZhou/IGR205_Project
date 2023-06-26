@@ -7,6 +7,8 @@ void Mesh::render(Renderer & renderer, GLuint program = 0,
   const glm::mat4 & extraTransformFirst = glm::mat4(1),
   const glm::mat4 & extraTransformLast = glm::mat4(1))
 {
+  if(!shouldRender) return;
+  
   const glm::mat4 viewMatrix = renderer.getCamera().computeViewMatrix();
   const glm::mat4 projMatrix = renderer.getCamera().computeProjectionMatrix();
   const glm::mat4 worldMatrix = extraTransformLast * getWorldMatrix() * extraTransformFirst;

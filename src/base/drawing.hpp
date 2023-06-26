@@ -134,6 +134,17 @@ public:
     return subDrawingStarts.size();
   }
 
+  inline void clearDrawing() {
+    drawing.clear();
+    subDrawingStarts.clear();
+    getOpenGLError("Drawing before update");
+    size_t length = sizeof(float)*drawing.size()*3;
+    glBindBuffer(GL_ARRAY_BUFFER, m_posVbo);
+    glBufferData(GL_ARRAY_BUFFER, length, drawing.data(), GL_DYNAMIC_READ);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    getOpenGLError("Drawing update");
+  }
+
 private:
   std::vector<glm::vec3> drawing;
   std::vector<unsigned> subDrawingStarts;

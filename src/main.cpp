@@ -275,13 +275,18 @@ glm::vec3 skeletonColor0 = {200, 0, 0};
 glm::vec3 skeletonColor1 = {0, 200, 0};
 glm::vec3 skeletonColor2 = {0, 0, 200};
 
-glm::vec3 cylinderMeshColor = {0, 100, 100};
+glm::vec3 cylinderMeshColor = {0, 200, 200};
+glm::vec3 cylinderMeshColorUnselected = {0, 100, 100};
 glm::vec3 skeletonMeshColor = {0, 250, 0};
 glm::vec3 skeletonMeshColorHighLight = {255, 255, 255};
 
 std::vector<Renderable *> skeletonMesh;
 Mesh * generatedMesh = nullptr;
 MeshSkeleton * generatedMeshSkeleton = nullptr;
+
+std::vector<Renderable *> skeletonFirstMesh;
+Mesh * firstMesh = nullptr;
+MeshSkeleton * generatedFirstMeshSkeleton = nullptr;
 
 float cdp_threshold = 0.5;
 float importanceCylindricalError = 1.0f;
@@ -464,50 +469,38 @@ void testPipeline(
 
   // Meshes rendering
 
+  // Mesh
   if(generatedMesh!=nullptr) {
     renderer->removeRenderable(generatedMesh);
   }
-  if(show_mesh) {
-    if(show_skeleton) {
-      generatedMesh = new Mesh(
-        new MeshGeometry(meshVertices, meshFaces),
-        MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.01f, cylinderMeshColor*0.001f, 1)
+  generatedMesh = new Mesh(
+    new MeshGeometry(meshVertices, meshFaces),
+    MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.01f, cylinderMeshColor*0.001f, 1)
+  );
+  renderer->addRenderable(generatedMesh);
+  // Skeleton of te mesh
+  generatedMeshSkeleton = new MeshSkeleton(rigging);
+  for(unsigned b=0; b<generatedMeshSkeleton->getBones().size(); b++) {
+    for(unsigned v=0; v<generatedMesh->getGeometry()->getVertexPositions().size(); v++) {
+      auto coef = rigging.getBonesSkins().at(b).getVertexSkinWeights().at(v);
+      generatedMeshSkeleton->setVerticesCoef(
+        b, v, coef
       );
     }
-    else {
-      generatedMesh = new Mesh(
-        new MeshGeometry(meshVertices, meshFaces),
-        MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.01f, cylinderMeshColor*0.001f, 1)
-      );
-    }
-
-    generatedMeshSkeleton = new MeshSkeleton(rigging);
-    for(unsigned b=0; b<generatedMeshSkeleton->getBones().size(); b++) {
-      for(unsigned v=0; v<generatedMesh->getGeometry()->getVertexPositions().size(); v++) {
-        auto coef = rigging.getBonesSkins().at(b).getVertexSkinWeights().at(v);
-        generatedMeshSkeleton->setVerticesCoef(
-          b, v, coef
-        );
-      }
-    }
-    generatedMeshSkeleton->initVerticesTranformsCoef();
-    generatedMesh->setSkeleton(generatedMeshSkeleton);
-    
-    renderer->addRenderable(generatedMesh);
   }
-
+  generatedMeshSkeleton->initVerticesTranformsCoef();
+  generatedMesh->setSkeleton(generatedMeshSkeleton);
+  // Skeleton mesh
   if(skeletonMesh.size()>0) {
     for(auto m : skeletonMesh)
       renderer->removeRenderable(m);
   }
-  if(show_skeleton) {
-    skeletonMesh = generatedMeshSkeleton->getSkeletonMesh(skeletonMeshColor);
-    for(auto m : skeletonMesh) {
-      m->setDepthTest(false);
-      renderer->addRenderable(m);
-    }
-    ((Mesh*)skeletonMesh.at(focus_bone_index))->getMaterial()->setBasicColor(skeletonMeshColorHighLight);
+  skeletonMesh = generatedMeshSkeleton->getSkeletonMesh(skeletonMeshColor);
+  for(auto m : skeletonMesh) {
+    m->setDepthTest(false);
+    renderer->addRenderable(m);
   }
+  ((Mesh*)skeletonMesh.at(focus_bone_index))->getMaterial()->setBasicColor(skeletonMeshColorHighLight);
 
 
   {
@@ -617,8 +610,49 @@ void renderImGui() {
       Shape shape(sub_sampling, points);
       testPipeline(shape);
     } ImGui::SameLine(); ImGui::Text("<---------------------------------------------");
+    // Should show skeleton
+    bool prev_show_skeleton = show_skeleton;
     ImGui::Checkbox("Show skeleton", &show_skeleton);
+    if(prev_show_skeleton!=show_skeleton) {
+      for(auto sk : skeletonMesh) {
+        ((Mesh*)sk)->shouldRender = show_skeleton;
+      }
+    }
+    // Should show mesh
+    bool prev_show_mesh = show_mesh;
     ImGui::Checkbox("Show mesh", &show_mesh);
+    if(prev_show_mesh!=show_mesh && generatedMesh) {
+      ((Mesh*)generatedMesh)->shouldRender = show_mesh;
+    }
+    // Drawing clearing
+    if (ImGui::Button("CLEAR DRAWING")) {
+      drawing->clearDrawing();
+    }
+    // Add mesh
+    if (ImGui::Button("Other mesh") && generatedMesh) {
+      if(skeletonFirstMesh.size()>0) {
+        for(auto m : skeletonFirstMesh)
+          renderer->removeRenderable(m);
+      }
+      if(firstMesh) {
+        renderer->removeRenderable(firstMesh);
+      }
+      if(generatedFirstMeshSkeleton) {
+        delete generatedFirstMeshSkeleton;
+        generatedFirstMeshSkeleton = nullptr;
+      }
+      firstMesh = generatedMesh;
+      skeletonFirstMesh = skeletonMesh;
+      generatedFirstMeshSkeleton = generatedMeshSkeleton;
+      generatedMesh = nullptr;
+      skeletonMesh.clear();
+      generatedMeshSkeleton = nullptr;
+      firstMesh->getMaterial()->setDiffuseColor(cylinderMeshColorUnselected*0.01f);
+      firstMesh->getMaterial()->setSpecularColor(cylinderMeshColorUnselected*0.001f);
+    }
+    if (ImGui::Button("Merge meshes") && generatedMesh && firstMesh) {
+      
+    }
     ImGui::Separator();
 
     ImGui::Text("Meshes");
@@ -634,6 +668,15 @@ void renderImGui() {
     //     skeletonMesh->getGeometry()->getFaces(),
     //     skeletonMesh->getGeometry()->getVertexPositions());
     // }
+    if (ImGui::Button("Clear mesh")) {
+      if(generatedMesh) {
+        renderer->removeRenderable(generatedMesh);
+      }
+      if(skeletonMesh.size()>0) {
+        for(auto m : skeletonMesh)
+          renderer->removeRenderable(m);
+      }
+    }
     ImGui::Separator();
 
     ImGui::Text("Skeleton");
