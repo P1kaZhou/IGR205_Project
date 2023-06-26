@@ -29,6 +29,10 @@
 
 #include <modeling/smoothing.hpp>
 
+#include <modeling/remeshing.hpp>
+
+#include <modeling/operations.h>
+
 
 Renderer * renderer = nullptr;
 Mesh * selectedMesh = nullptr;
@@ -277,6 +281,7 @@ glm::vec3 skeletonColor2 = {0, 0, 200};
 
 glm::vec3 cylinderMeshColor = {0, 200, 200};
 glm::vec3 cylinderMeshColorUnselected = {0, 100, 100};
+glm::vec3 mergedMeshColor = {200, 0, 0};
 glm::vec3 skeletonMeshColor = {0, 250, 0};
 glm::vec3 skeletonMeshColorHighLight = {255, 255, 255};
 
@@ -287,6 +292,12 @@ MeshSkeleton * generatedMeshSkeleton = nullptr;
 std::vector<Renderable *> skeletonFirstMesh;
 Mesh * firstMesh = nullptr;
 MeshSkeleton * generatedFirstMeshSkeleton = nullptr;
+
+Mesh * mergedMesh = nullptr;
+
+bool show_skeleton = true;
+bool show_mesh = true;
+bool show_merged_mesh = true;
 
 float cdp_threshold = 0.5;
 float importanceCylindricalError = 1.0f;
@@ -306,8 +317,113 @@ int smooth_mask_size = 2;
 int bones_count = 0;
 int focus_bone_index = 0;
 
-bool show_skeleton = true;
-bool show_mesh = true;
+void computeSkeletonAndMeshes(
+  std::vector<glm::vec3> & meshVertices,
+  std::vector<glm::uvec3> & meshFaces,
+  Shape & shape,
+  std::vector<std::vector<glm::vec2>> & externalAxis,
+  std::vector<std::vector<glm::vec2>> & internalAxis,
+  std::vector<Geometry::Edge> & chords
+) {
+  // Full skeleton
+  SkeletonGenerator skelGen(
+    shape.getFullPoints(), externalAxis, internalAxis, chords,
+    cdp_threshold, importanceDistanceError, importanceCylindricalError);
+  skelGen.compute();
+
+  Rigging & rigging = skelGen.getRigging();
+  rigging.initSkinning(meshVertices.size());
+  SkiningGenerator skinGen(rigging, meshVertices, meshFaces);
+  skinGen.compute();
+
+  bones_count = rigging.getBonesSkins().size();
+  
+  // std::vector<glm::vec3> meshColors;
+  // meshColors.reserve(meshVertices.size());
+  // auto & skinGroup = rigging.getBonesSkins().at(focus_bone_index);
+  // for(unsigned v=0; v<meshVertices.size(); v++) {
+  //   auto weight_ = skinGroup.getVertexSkinWeights().find(v);
+  //   if(weight_ != skinGroup.getVertexSkinWeights().end()) {
+  //     float weight = weight_->second;
+  //     meshColors.push_back({0.f, weight, 0.f});
+  //   }
+  // }
+
+  // Meshes rendering
+
+  // Mesh
+  if(generatedMesh!=nullptr) {
+    renderer->removeRenderable(generatedMesh);
+  }
+  generatedMesh = new Mesh(
+    new MeshGeometry(meshVertices, meshFaces),
+    MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.01f, cylinderMeshColor*0.001f, 1)
+  );
+  renderer->addRenderable(generatedMesh);
+  // Skeleton of te mesh
+  generatedMeshSkeleton = new MeshSkeleton(rigging);
+  for(unsigned b=0; b<generatedMeshSkeleton->getBones().size(); b++) {
+    for(unsigned v=0; v<generatedMesh->getGeometry()->getVertexPositions().size(); v++) {
+      auto coef = rigging.getBonesSkins().at(b).getVertexSkinWeights().at(v);
+      generatedMeshSkeleton->setVerticesCoef(
+        b, v, coef
+      );
+    }
+  }
+  generatedMeshSkeleton->initVerticesTranformsCoef();
+  generatedMesh->setSkeleton(generatedMeshSkeleton);
+  // Skeleton mesh
+  if(skeletonMesh.size()>0) {
+    for(auto m : skeletonMesh)
+      renderer->removeRenderable(m);
+  }
+  skeletonMesh = generatedMeshSkeleton->getSkeletonMesh(skeletonMeshColor);
+  for(auto m : skeletonMesh) {
+    m->setDepthTest(false);
+    renderer->addRenderable(m);
+  }
+  ((Mesh*)skeletonMesh.at(focus_bone_index))->getMaterial()->setBasicColor(skeletonMeshColorHighLight);
+
+
+  {
+    std::vector<std::pair<glm::vec2, glm::vec2>> bones2D;
+    std::vector<glm::vec2> bonesPoints;
+    for(auto & bone : skelGen.getRigging().getBones()) {
+      bones2D.push_back({
+        glm::vec2(bone.getA().getPoint()),
+        glm::vec2(bone.getB().getPoint())
+      });
+      bonesPoints.push_back(glm::vec2(bone.getA().getPoint()));
+      bonesPoints.push_back(glm::vec2(bone.getB().getPoint()));
+    }
+    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
+    builder.setExtraPoints(shape.getFullPoints());
+    builder.addExtraPoints(bonesPoints);
+    builder.drawSegments(bones2D, skeletonColor0);
+    builder.drawShape(true, shape.getFullPoints(), shapeColor);
+    builder.drawPoints(shape.getFullPoints(), shapePointColor);
+    builder.save("im-080-skeleton.png");
+  }
+  {
+    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
+    builder.setExtraPoints(shape.getFullPoints());
+    for(auto ax : skelGen.getExternalAxisSkeleton()) {
+      builder.drawShape(false, ax, skeletonColor0);
+      builder.drawPoints(ax, axisPointColor);
+    }
+    for(auto ax : skelGen.getInternalAxisSkeleton()) {
+      builder.drawShape(false, ax, skeletonColor1);
+      builder.drawPoints(ax, axisPointColor);
+    }
+    for(auto ax : skelGen.getJunctionAxisSkeleton()) {
+      builder.drawShape(false, ax, skeletonColor2);
+      builder.drawPoints(ax, axisPointColor);
+    }
+    builder.drawShape(true, shape.getFullPoints(), shapeColor);
+    builder.drawPoints(shape.getFullPoints(), shapePointColor);
+    builder.save("im-090-skeleton-details.png");
+  }
+}
 
 void testPipeline(
   Shape shape
@@ -442,106 +558,11 @@ void testPipeline(
   meshGen.compute();
   std::vector<glm::vec3> meshVertices = meshGen.getVertices();
   std::vector<glm::uvec3> meshFaces = meshGen.getFaces();
-
-  // Full skeleton
-  SkeletonGenerator skelGen(
-    shape.getFullPoints(), externalAxis, internalAxis, chords,
-    cdp_threshold, importanceDistanceError, importanceCylindricalError);
-  skelGen.compute();
-
-  Rigging & rigging = skelGen.getRigging();
-  rigging.initSkinning(meshVertices.size());
-  SkiningGenerator skinGen(rigging, meshVertices, meshFaces);
-  skinGen.compute();
-
-  bones_count = rigging.getBonesSkins().size();
-  
-  // std::vector<glm::vec3> meshColors;
-  // meshColors.reserve(meshVertices.size());
-  // auto & skinGroup = rigging.getBonesSkins().at(focus_bone_index);
-  // for(unsigned v=0; v<meshVertices.size(); v++) {
-  //   auto weight_ = skinGroup.getVertexSkinWeights().find(v);
-  //   if(weight_ != skinGroup.getVertexSkinWeights().end()) {
-  //     float weight = weight_->second;
-  //     meshColors.push_back({0.f, weight, 0.f});
-  //   }
-  // }
-
-  // Meshes rendering
-
-  // Mesh
-  if(generatedMesh!=nullptr) {
-    renderer->removeRenderable(generatedMesh);
-  }
-  generatedMesh = new Mesh(
-    new MeshGeometry(meshVertices, meshFaces),
-    MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.01f, cylinderMeshColor*0.001f, 1)
+  computeSkeletonAndMeshes(
+    meshVertices, meshFaces,
+    shape,
+    externalAxis, internalAxis, chords
   );
-  renderer->addRenderable(generatedMesh);
-  // Skeleton of te mesh
-  generatedMeshSkeleton = new MeshSkeleton(rigging);
-  for(unsigned b=0; b<generatedMeshSkeleton->getBones().size(); b++) {
-    for(unsigned v=0; v<generatedMesh->getGeometry()->getVertexPositions().size(); v++) {
-      auto coef = rigging.getBonesSkins().at(b).getVertexSkinWeights().at(v);
-      generatedMeshSkeleton->setVerticesCoef(
-        b, v, coef
-      );
-    }
-  }
-  generatedMeshSkeleton->initVerticesTranformsCoef();
-  generatedMesh->setSkeleton(generatedMeshSkeleton);
-  // Skeleton mesh
-  if(skeletonMesh.size()>0) {
-    for(auto m : skeletonMesh)
-      renderer->removeRenderable(m);
-  }
-  skeletonMesh = generatedMeshSkeleton->getSkeletonMesh(skeletonMeshColor);
-  for(auto m : skeletonMesh) {
-    m->setDepthTest(false);
-    renderer->addRenderable(m);
-  }
-  ((Mesh*)skeletonMesh.at(focus_bone_index))->getMaterial()->setBasicColor(skeletonMeshColorHighLight);
-
-
-  {
-    std::vector<std::pair<glm::vec2, glm::vec2>> bones2D;
-    std::vector<glm::vec2> bonesPoints;
-    for(auto & bone : skelGen.getRigging().getBones()) {
-      bones2D.push_back({
-        glm::vec2(bone.getA().getPoint()),
-        glm::vec2(bone.getB().getPoint())
-      });
-      bonesPoints.push_back(glm::vec2(bone.getA().getPoint()));
-      bonesPoints.push_back(glm::vec2(bone.getB().getPoint()));
-    }
-    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-    builder.setExtraPoints(shape.getFullPoints());
-    builder.addExtraPoints(bonesPoints);
-    builder.drawSegments(bones2D, skeletonColor0);
-    builder.drawShape(true, shape.getFullPoints(), shapeColor);
-    builder.drawPoints(shape.getFullPoints(), shapePointColor);
-    builder.save("im-080-skeleton.png");
-  }
-  {
-    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-    builder.setExtraPoints(shape.getFullPoints());
-    for(auto ax : skelGen.getExternalAxisSkeleton()) {
-      builder.drawShape(false, ax, skeletonColor0);
-      builder.drawPoints(ax, axisPointColor);
-    }
-    for(auto ax : skelGen.getInternalAxisSkeleton()) {
-      builder.drawShape(false, ax, skeletonColor1);
-      builder.drawPoints(ax, axisPointColor);
-    }
-    for(auto ax : skelGen.getJunctionAxisSkeleton()) {
-      builder.drawShape(false, ax, skeletonColor2);
-      builder.drawPoints(ax, axisPointColor);
-    }
-    builder.drawShape(true, shape.getFullPoints(), shapeColor);
-    builder.drawPoints(shape.getFullPoints(), shapePointColor);
-    builder.save("im-090-skeleton-details.png");
-  }
-
 }
 
 float cameraNear = 0.1f;
@@ -624,6 +645,12 @@ void renderImGui() {
     if(prev_show_mesh!=show_mesh && generatedMesh) {
       ((Mesh*)generatedMesh)->shouldRender = show_mesh;
     }
+    // Should show merged mesh
+    bool prev_show_merged_mesh = show_merged_mesh;
+    ImGui::Checkbox("Show merge", &show_merged_mesh);
+    if(prev_show_merged_mesh!=show_merged_mesh && mergedMesh) {
+      ((Mesh*)mergedMesh)->shouldRender = show_merged_mesh;
+    }
     // Drawing clearing
     if (ImGui::Button("CLEAR DRAWING")) {
       drawing->clearDrawing();
@@ -651,7 +678,22 @@ void renderImGui() {
       firstMesh->getMaterial()->setSpecularColor(cylinderMeshColorUnselected*0.001f);
     }
     if (ImGui::Button("Merge meshes") && generatedMesh && firstMesh) {
-      
+      operations op;
+
+      std::vector<glm::vec3> positions1 = firstMesh->getGeometry()->getVertexPositions();
+      std::vector<glm::uvec3> faces1 = firstMesh->getGeometry()->getFaces();
+      std::vector<glm::vec3> positions2 = generatedMesh->getGeometry()->getVertexPositions();
+      std::vector<glm::uvec3> faces2 = generatedMesh->getGeometry()->getFaces();
+      op.mergeCustom(positions1, faces1, positions2, faces2);
+
+      if(mergedMesh!=nullptr) {
+        renderer->removeRenderable(mergedMesh);
+      }
+      mergedMesh = new Mesh(
+        new MeshGeometry(positions1, faces1),
+        MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.01f, cylinderMeshColor*0.001f, 1)
+      );
+      renderer->addRenderable(mergedMesh);
     }
     ImGui::Separator();
 

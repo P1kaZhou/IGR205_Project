@@ -49,7 +49,7 @@ public:
     pointToCylinders.insert({q, {qCylinder, qIsA}});
   }
 
-  /*Return -1 is no direct connexion is found.*/
+  /*Return -1 if no direct connexion is found.*/
   inline int getPointConnexion(unsigned p) {
     auto conn = connexions.find(p);
     if(conn == connexions.end()) {
@@ -474,6 +474,7 @@ std::vector<glm::uvec3> MeshGenerator::createConnexionGrid(unsigned p, unsigned 
     else if(connCylsP.size()>1 || connCylsQ.size()>1) {
       std::cerr << "Two single points with two or more cylinders" << std::endl;
       assert(false);
+      // return connexionFaces(connCylsP.at(connCylsP.size()-1), connCylsQ.at(connCylsQ.size()-1));
     }
     else {
       return connexionFaces(connCylsP.at(0), connCylsQ.at(0));

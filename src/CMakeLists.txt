@@ -35,6 +35,14 @@ target_link_libraries(${PROJECT_NAME} PRIVATE CDT)
 add_subdirectory(dep/glm)
 target_link_libraries(${PROJECT_NAME} PRIVATE glm)
 
+# EIGEN
+# set(EIGEN_INCLUDE_DIRS ${EIGEN3_INCLUDE_DIR})
+# target_include_directories(${PROJECT_NAME} PRIVATE ${EIGEN3_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE dep/eigenlib)
+
+# VCG
+target_include_directories(${PROJECT_NAME} PRIVATE dep/vcg)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_DL_LIBS})
 
 # IMGUI
@@ -68,6 +76,7 @@ target_sources(
         base/modeling/rigging.cpp
         base/modeling/skeleton-generator.cpp
         base/modeling/smoothing.cpp
+        base/modeling/operations.cpp
         base/modeling/skining-generator.cpp
         base/modeling/mesh-generator.cpp
 

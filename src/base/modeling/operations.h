@@ -11,7 +11,7 @@
 #include "geometry/geometry.hpp"
 
 class operations {
-
+public:
     void merge(std::vector<glm::vec3> &positions1, std::vector<glm::uvec3> &faces1,
                std::vector<glm::vec3> &positions2, std::vector<glm::uvec3> &faces2);
 
