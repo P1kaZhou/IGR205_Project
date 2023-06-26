@@ -223,7 +223,7 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
 
     std::cout << "bye" << std::endl;
 
-    medialAxisG.smooth(2);
+    medialAxisG.smooth(1);
 
     extendAxis(medialAxisG, sketchPoints);
 
@@ -387,15 +387,10 @@ void smoothing::extendAxis(MedialAxisGenerator &medialAxisG,
     // First step: get the external axis to extend (they are smoothened out first)
     std::vector<std::vector<glm::vec2>> externalAxisPruned = medialAxisG.extractExternalAxis();
 
-    std::vector<std::vector<glm::vec2>> newAxis;
-
-    std::vector<glm::vec2> pointsToAdd;
-
     for (auto pointAxis: externalAxisPruned) {
         glm::vec2 pointToAdd = pointAxis[0];
-        pointsToAdd.push_back(pointToAdd);
+
         glm::vec2 gradient = glm::vec2(0.0f);
-        float stepSize = 0.1f; // It's going to change anyway
 
         int pointAxisSize = pointAxis.size();
         // Compute the cumulative gradient
@@ -408,11 +403,7 @@ void smoothing::extendAxis(MedialAxisGenerator &medialAxisG,
             gradient += gradientToAdd;
         }
 
-        stepSize = glm::distance(pointAxis[0], pointAxis[1]);
-
         // At this point we have the gradient that comes from the axis where the point belongs to
-
-        std::vector<glm::vec2> newPointsForThisAxis;
 
         // Check if the new point is inside the polygon
         // We are going to use lineToLineIntersectionCoef from the Geometry package
@@ -424,54 +415,22 @@ void smoothing::extendAxis(MedialAxisGenerator &medialAxisG,
             glm::vec2 a = sketchPoints[i];
             glm::vec2 b = sketchPoints[(i + 1) % sketchPoints.size()];
             Geometry::lineToLineIntersectionCoef(pointToAdd, gradient, a, b - a, t1, t2);
-            if (t2 > 0.0f && t2 < 1.0f) {
-                tmap[t1] = t2;
+            if (t2 > 0.0f && t2 < 1.0f && t1 > 0) {
+                tmap.insert({t1, t2});
             }
         }
 
         // get the smallest key
         float smallestKey = tmap.begin()->first;
-        float smallestValue = tmap.begin()->second;
         for (auto it = tmap.begin(); it != tmap.end(); it++) {
             if (it->first < smallestKey) {
                 smallestKey = it->first;
-                smallestValue = it->second;
             }
         }
-
         t1 = smallestKey;
-        t2 = smallestValue;
-
         intersectionPoint = pointToAdd + gradient * t1;
-
         // as for now
-        int numberOfPointsToAdd = int(t1 / stepSize);
-        for (int i = 0; i < numberOfPointsToAdd; i++) {
-            glm::vec2 newPoint = pointToAdd + float(i) * gradient * stepSize;
-            newPointsForThisAxis.push_back(newPoint);
-        }
-        newPointsForThisAxis.push_back(intersectionPoint);
-        newAxis.push_back(newPointsForThisAxis);
-    }
-
-    for (auto newAxisToAdd: newAxis) {
-        std::vector<MedialAxisPoint *> addedPoints;
-        for (auto newPoint: newAxisToAdd) {
-            MedialAxisPoint *myPoint = medialAxis.insertPoint(newPoint);
-            addedPoints.push_back(myPoint);
-        }
-        int n = addedPoints.size();
-        if (n > 1) {
-            // Case i = 0;
-            addedPoints[0]->addAdj(addedPoints[1]);
-            // Case i = 1 to n - 2
-            for (int i = 1; i < n - 1; i++) {
-                addedPoints[i]->addAdj(addedPoints[i - 1]);
-                addedPoints[i]->addAdj(addedPoints[i + 1]);
-            }
-            // Case i = n - 1
-            addedPoints[n - 1]->addAdj(addedPoints[n - 2]);
-        }
+        medialAxis.insertEdge(pointToAdd, intersectionPoint);
     }
 }
 
