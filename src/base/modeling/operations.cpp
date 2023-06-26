@@ -565,6 +565,10 @@ void operations::mergeCustom(std::vector<glm::vec3> &positions1, std::vector<glm
         newpositions1[index] = point;
 
     }
+
+    // Parameters replacement
+    positions1 = newpositions1;
+    faces1 = newfaces1;
 }
 
 
