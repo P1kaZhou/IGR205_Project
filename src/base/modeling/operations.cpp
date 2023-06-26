@@ -245,14 +245,20 @@ void operations::mergeCustom(std::vector<glm::vec3> &positions1, std::vector<glm
 
     // Custom algorithm
 
+    std::cout << "start custom merge" << std::endl;
+
     // 1. discard all the points from mesh 1 that are inside mesh 2 and vice versa
     // 2. do the same for triangles
     // 3. ???
 
     // 1. discard all the points from mesh 1 that are inside mesh 2 and vice versa
     // 1.1. Mesh 1
+
+    std::cout << "step 1 start" << std::endl;
+
     std::vector<glm::vec3> newpositions1;
     std::set<unsigned> removedIndexes1;
+
     for (int i = 0; i < positions1.size(); i++) {
         glm::vec3 position1 = positions1[i];
         glm::vec3 rayDirection = glm::vec3(0.f, 0.f, 1.f);
@@ -328,6 +334,8 @@ void operations::mergeCustom(std::vector<glm::vec3> &positions1, std::vector<glm
 
     // 2. do the same for triangles
 
+    std::cout << "step 2 start, step 1 end" << std::endl;
+
     // 2.1. Mesh 1
     std::vector<glm::uvec3> newfaces1;
     for (auto triangle: faces1) {
@@ -353,6 +361,8 @@ void operations::mergeCustom(std::vector<glm::vec3> &positions1, std::vector<glm
             newfaces2.push_back(triangle);
         }
     }
+
+    std::cout << "step 3 start, step 2 end" << std::endl;
 
     // 3. Get the list of edges we need to connect
     // 3.1. Mesh 1
@@ -415,6 +425,8 @@ void operations::mergeCustom(std::vector<glm::vec3> &positions1, std::vector<glm
         }
     }
 
+    std::cout << "step 4 start, step 3 end" << std::endl;
+
     // 4. Extend the edges
 
     const int POINTS_OFFSET = newpositions1.size();
@@ -470,6 +482,8 @@ void operations::mergeCustom(std::vector<glm::vec3> &positions1, std::vector<glm
 
     // 5. Apply either a localized smoothing or a global smoothing
 
+    /*
+    std::cout << "step 5 start, step 4 end" << std::endl;
     // Localized smoothing
 
     std::set<unsigned int> smoothedPoints;
@@ -565,10 +579,13 @@ void operations::mergeCustom(std::vector<glm::vec3> &positions1, std::vector<glm
         newpositions1[index] = point;
 
     }
+     */
 
     // Parameters replacement
     positions1 = newpositions1;
     faces1 = newfaces1;
+
+    std::cout << "Done merging" << std::endl;
 }
 
 
