@@ -223,7 +223,7 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
 
     std::cout << "bye" << std::endl;
 
-    medialAxisG.smooth(2);
+    medialAxisG.smooth(1);
 
     extendAxis(medialAxisG, sketchPoints);
 
@@ -387,13 +387,10 @@ void smoothing::extendAxis(MedialAxisGenerator &medialAxisG,
     // First step: get the external axis to extend (they are smoothened out first)
     std::vector<std::vector<glm::vec2>> externalAxisPruned = medialAxisG.extractExternalAxis();
 
-    std::vector<std::vector<glm::vec2>> newAxis;
-
     for (auto pointAxis: externalAxisPruned) {
         glm::vec2 pointToAdd = pointAxis[0];
 
         glm::vec2 gradient = glm::vec2(0.0f);
-        float stepSize = 0.1f; // It's going to change anyway
 
         int pointAxisSize = pointAxis.size();
         // Compute the cumulative gradient
@@ -418,8 +415,8 @@ void smoothing::extendAxis(MedialAxisGenerator &medialAxisG,
             glm::vec2 a = sketchPoints[i];
             glm::vec2 b = sketchPoints[(i + 1) % sketchPoints.size()];
             Geometry::lineToLineIntersectionCoef(pointToAdd, gradient, a, b - a, t1, t2);
-            if (t2 > 0.0f && t2 < 1.0f) {
-                tmap[t1] = t2;
+            if (t2 > 0.0f && t2 < 1.0f && t1 > 0) {
+                tmap.insert({t1, t2});
             }
         }
 
