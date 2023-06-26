@@ -387,50 +387,115 @@ void smoothing::extendAxis(MedialAxisGenerator &medialAxisG,
     // First step: get the external axis to extend (they are smoothened out first)
     std::vector<std::vector<glm::vec2>> externalAxisPruned = medialAxisG.extractExternalAxis();
 
-    for (auto pointAxis: externalAxisPruned) {
-        glm::vec2 pointToAdd = pointAxis[0];
+    int numberOfAxes = externalAxisPruned.size();
 
-        glm::vec2 gradient = glm::vec2(0.0f);
+    if (numberOfAxes > 1) {
 
-        int pointAxisSize = pointAxis.size();
-        // Compute the cumulative gradient
-        int gradientAccuracy = 2;
-        if (pointAxisSize < 2) {
-            gradientAccuracy = 1;
-        }
-        for (int i = 1; i < gradientAccuracy + 1; i++) {
-            glm::vec2 gradientToAdd = (pointAxis[0] - pointAxis[i]) / float(gradientAccuracy);
-            gradient += gradientToAdd;
-        }
+        for (auto pointAxis: externalAxisPruned) {
+            glm::vec2 pointToAdd = pointAxis[0];
 
-        // At this point we have the gradient that comes from the axis where the point belongs to
+            glm::vec2 gradient = glm::vec2(0.0f);
 
-        // Check if the new point is inside the polygon
-        // We are going to use lineToLineIntersectionCoef from the Geometry package
-        float t1, t2;
-        glm::vec2 intersectionPoint;
-
-        std::map<float, float> tmap;
-        for (int i = 0; i < sketchPoints.size(); i++) {
-            glm::vec2 a = sketchPoints[i];
-            glm::vec2 b = sketchPoints[(i + 1) % sketchPoints.size()];
-            Geometry::lineToLineIntersectionCoef(pointToAdd, gradient, a, b - a, t1, t2);
-            if (t2 > 0.0f && t2 < 1.0f && t1 > 0) {
-                tmap.insert({t1, t2});
+            int pointAxisSize = pointAxis.size();
+            // Compute the cumulative gradient
+            int gradientAccuracy = 2;
+            if (pointAxisSize < 2) {
+                gradientAccuracy = 1;
             }
-        }
-
-        // get the smallest key
-        float smallestKey = tmap.begin()->first;
-        for (auto it = tmap.begin(); it != tmap.end(); it++) {
-            if (it->first < smallestKey) {
-                smallestKey = it->first;
+            for (int i = 1; i < gradientAccuracy + 1; i++) {
+                glm::vec2 gradientToAdd = (pointAxis[0] - pointAxis[i]) / float(gradientAccuracy);
+                gradient += gradientToAdd;
             }
+
+            // At this point we have the gradient that comes from the axis where the point belongs to
+
+            // Check if the new point is inside the polygon
+            // We are going to use lineToLineIntersectionCoef from the Geometry package
+            float t1, t2;
+            glm::vec2 intersectionPoint;
+
+            std::map<float, float> tmap;
+            for (int i = 0; i < sketchPoints.size(); i++) {
+                glm::vec2 a = sketchPoints[i];
+                glm::vec2 b = sketchPoints[(i + 1) % sketchPoints.size()];
+                Geometry::lineToLineIntersectionCoef(pointToAdd, gradient, a, b - a, t1, t2);
+                if (t2 > 0.0f && t2 < 1.0f && t1 > 0) {
+                    tmap.insert({t1, t2});
+                }
+            }
+
+            // get the smallest key
+            float smallestKey = tmap.begin()->first;
+            for (auto it = tmap.begin(); it != tmap.end(); it++) {
+                if (it->first < smallestKey) {
+                    smallestKey = it->first;
+                }
+            }
+            t1 = smallestKey;
+            intersectionPoint = pointToAdd + gradient * t1;
+            // as for now
+            medialAxis.insertEdge(pointToAdd, intersectionPoint);
         }
-        t1 = smallestKey;
-        intersectionPoint = pointToAdd + gradient * t1;
-        // as for now
-        medialAxis.insertEdge(pointToAdd, intersectionPoint);
+    } else {
+
+        std::vector<glm::vec2> singleAxis = externalAxisPruned[0];
+        glm::vec2 startingPoint = singleAxis[0];
+        glm::vec2 endingPoint = singleAxis[singleAxis.size() - 1];
+
+        glm::vec2 gradientStart;
+        glm::vec2 gradientEnd;
+        if (singleAxis.size() == 2) { // ?? Ripbozo
+            gradientStart = startingPoint - endingPoint;
+            gradientEnd = -gradientStart;
+        } else if (singleAxis.size() == 1){
+            std::cout << "axis is alone bruv" << std::endl;
+        } else {
+            // Cumulative sum
+            gradientStart = singleAxis[0] - singleAxis[1]/float(2) - singleAxis[2]/float(2);
+            gradientEnd = singleAxis[singleAxis.size() - 1] - singleAxis[singleAxis.size() - 2]/float(2)
+                    - singleAxis[singleAxis.size() - 3]/float(2);
+
+            float t1, t2;
+
+            std::map<float, float> tmapStart;
+            std::map<float, float> tmapEnd;
+
+            for (int i = 0; i < sketchPoints.size(); i++) {
+                glm::vec2 a = sketchPoints[i];
+                glm::vec2 b = sketchPoints[(i + 1) % sketchPoints.size()];
+                Geometry::lineToLineIntersectionCoef(startingPoint, gradientStart, a, b - a, t1, t2);
+                if (t2 > 0.0f && t2 < 1.0f && t1 > 0) {
+                    tmapStart.insert({t1, t2});
+                }
+                Geometry::lineToLineIntersectionCoef(endingPoint, gradientEnd, a, b - a, t1, t2);
+                if (t2 > 0.0f && t2 < 1.0f && t1 > 0) {
+                    tmapEnd.insert({t1, t2});
+                }
+            }
+
+            float smallestKeyStart = tmapStart.begin()->first;
+            float smallestKeyEnd = tmapEnd.begin()->first;
+
+            for (auto it = tmapStart.begin(); it!=tmapStart.end(); it++){
+                if (it->first < smallestKeyStart){
+                    smallestKeyStart = it->first;
+                }
+            }
+            for (auto it = tmapEnd.begin(); it!=tmapEnd.end(); it++){
+                if (it->first < smallestKeyEnd){
+                    smallestKeyEnd = it->first;
+                }
+            }
+
+            float t1Start = smallestKeyStart;
+            float t1End = smallestKeyEnd;
+
+            glm::vec2 intersectionStart = startingPoint + gradientStart*t1Start;
+            glm::vec2 intersectionEnd = endingPoint + gradientEnd*t1End;
+
+            medialAxis.insertEdge(startingPoint, intersectionStart);
+            medialAxis.insertEdge(endingPoint, intersectionEnd);
+        }
     }
 }
 
