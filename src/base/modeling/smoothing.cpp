@@ -136,7 +136,8 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
         std::cout << "axis size: " << axis.size() << std::endl;
         // Get the first and the last element
         glm::vec2 firstPoint = axis[0];
-        glm::vec2 lastPoint = axis[axis.size() - 1];
+        glm::vec2 lastPoint = axis[axis.size() - 2];
+        // TODO: check if -2 is better than -1 because -1 will usually be the center
         // Get the closest junction point
         float minDistance = std::numeric_limits<float>::max();
         glm::uvec2 triangleEdge;
@@ -189,7 +190,7 @@ void smoothing::insignificantBranchesRemoval(MedialAxisGenerator &medialAxisG, f
         } // Iteration over the triangles ends here
 
         trianglesToRemove.push_back(triangleToRemove);
-        const float CLOSE_ENOUGH = 0.5f; // Something small is relevant considering they should "perfectly match"
+        const float CLOSE_ENOUGH = 1.f; // Something small is relevant considering they should "perfectly match<"
         if (minDistance < CLOSE_ENOUGH) {
             // Compute the ratio of morphological significance
             float morpho = glm::distance(firstPoint, lastPoint) /
