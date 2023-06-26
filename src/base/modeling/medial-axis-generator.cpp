@@ -43,7 +43,15 @@ std::vector<std::vector<glm::vec2>> MedialAxisGenerator::extractExternalAxis() {
           axis.push_back(start);
         }
       }
-      axisList.push_back(axis);
+
+      if(std::find(
+        externalAxisEndPoints.begin(), externalAxisEndPoints.end(), axis[0]
+      ) == externalAxisEndPoints.end()) {
+        // We make sure the the axis doesn't start iwth the end of another external axis
+        // Other wise they are the same but in reverse order
+        axisList.push_back(axis);
+      }
+      externalAxisEndPoints.push_back(axis[axis.size()-1]);
     }
   }
   return axisList;

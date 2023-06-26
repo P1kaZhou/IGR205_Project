@@ -472,7 +472,8 @@ std::vector<glm::uvec3> MeshGenerator::createConnexionGrid(unsigned p, unsigned 
       assert(false);
     }
     else if(connCylsP.size()>1 || connCylsQ.size()>1) {
-      std::cerr << "Two single points with two or more cylinders" << std::endl;
+      std::cerr << "Two single points with two or more cylinders " 
+      << connCylsP.size() << " and " << connCylsQ.size() << std::endl;
       assert(false);
       // return connexionFaces(connCylsP.at(connCylsP.size()-1), connCylsQ.at(connCylsQ.size()-1));
     }

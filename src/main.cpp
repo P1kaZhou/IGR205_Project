@@ -325,6 +325,11 @@ void computeSkeletonAndMeshes(
   std::vector<std::vector<glm::vec2>> & internalAxis,
   std::vector<Geometry::Edge> & chords
 ) {
+  std::cout << "External axis = " << externalAxis.size() << std::endl;
+  std::cout << "Internal axis = " << internalAxis.size() << std::endl;
+  std::cout << "Chords = " << chords.size() << std::endl;
+
+
   // Full skeleton
   SkeletonGenerator skelGen(
     shape.getFullPoints(), externalAxis, internalAxis, chords,
@@ -337,6 +342,46 @@ void computeSkeletonAndMeshes(
   skinGen.compute();
 
   bones_count = rigging.getBonesSkins().size();
+  std::cout << "Bones : " << bones_count << std::endl;
+
+  {
+    std::vector<std::pair<glm::vec2, glm::vec2>> bones2D;
+    std::vector<glm::vec2> bonesPoints;
+    for(auto & bone : skelGen.getRigging().getBones()) {
+      bones2D.push_back({
+        glm::vec2(bone.getA().getPoint()),
+        glm::vec2(bone.getB().getPoint())
+      });
+      bonesPoints.push_back(glm::vec2(bone.getA().getPoint()));
+      bonesPoints.push_back(glm::vec2(bone.getB().getPoint()));
+    }
+    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
+    builder.setExtraPoints(shape.getFullPoints());
+    builder.addExtraPoints(bonesPoints);
+    builder.drawSegments(bones2D, skeletonColor0);
+    builder.drawShape(true, shape.getFullPoints(), shapeColor);
+    builder.drawPoints(shape.getFullPoints(), shapePointColor);
+    builder.save("im-080-skeleton.png");
+  }
+  {
+    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
+    builder.setExtraPoints(shape.getFullPoints());
+    for(auto ax : skelGen.getExternalAxisSkeleton()) {
+      builder.drawShape(false, ax, skeletonColor0);
+      builder.drawPoints(ax, axisPointColor);
+    }
+    for(auto ax : skelGen.getInternalAxisSkeleton()) {
+      builder.drawShape(false, ax, skeletonColor1);
+      builder.drawPoints(ax, axisPointColor);
+    }
+    for(auto ax : skelGen.getJunctionAxisSkeleton()) {
+      builder.drawShape(false, ax, skeletonColor2);
+      builder.drawPoints(ax, axisPointColor);
+    }
+    builder.drawShape(true, shape.getFullPoints(), shapeColor);
+    builder.drawPoints(shape.getFullPoints(), shapePointColor);
+    builder.save("im-090-skeleton-details.png");
+  }
   
   // std::vector<glm::vec3> meshColors;
   // meshColors.reserve(meshVertices.size());
@@ -383,46 +428,6 @@ void computeSkeletonAndMeshes(
     renderer->addRenderable(m);
   }
   ((Mesh*)skeletonMesh.at(focus_bone_index))->getMaterial()->setBasicColor(skeletonMeshColorHighLight);
-
-
-  {
-    std::vector<std::pair<glm::vec2, glm::vec2>> bones2D;
-    std::vector<glm::vec2> bonesPoints;
-    for(auto & bone : skelGen.getRigging().getBones()) {
-      bones2D.push_back({
-        glm::vec2(bone.getA().getPoint()),
-        glm::vec2(bone.getB().getPoint())
-      });
-      bonesPoints.push_back(glm::vec2(bone.getA().getPoint()));
-      bonesPoints.push_back(glm::vec2(bone.getB().getPoint()));
-    }
-    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-    builder.setExtraPoints(shape.getFullPoints());
-    builder.addExtraPoints(bonesPoints);
-    builder.drawSegments(bones2D, skeletonColor0);
-    builder.drawShape(true, shape.getFullPoints(), shapeColor);
-    builder.drawPoints(shape.getFullPoints(), shapePointColor);
-    builder.save("im-080-skeleton.png");
-  }
-  {
-    Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
-    builder.setExtraPoints(shape.getFullPoints());
-    for(auto ax : skelGen.getExternalAxisSkeleton()) {
-      builder.drawShape(false, ax, skeletonColor0);
-      builder.drawPoints(ax, axisPointColor);
-    }
-    for(auto ax : skelGen.getInternalAxisSkeleton()) {
-      builder.drawShape(false, ax, skeletonColor1);
-      builder.drawPoints(ax, axisPointColor);
-    }
-    for(auto ax : skelGen.getJunctionAxisSkeleton()) {
-      builder.drawShape(false, ax, skeletonColor2);
-      builder.drawPoints(ax, axisPointColor);
-    }
-    builder.drawShape(true, shape.getFullPoints(), shapeColor);
-    builder.drawPoints(shape.getFullPoints(), shapePointColor);
-    builder.save("im-090-skeleton-details.png");
-  }
 }
 
 void testPipeline(
@@ -503,6 +508,7 @@ void testPipeline(
     for(auto ax : externalAxis) {
       builder.drawShape(false, ax, axisColor);
       builder.drawPoints(ax, axisPointColor);
+      std::cout << "External axis size : " << ax.size() << std::endl;
     }
     builder.drawShape(true, shape.getFullPoints(), shapeColor);
     builder.drawPoints(shape.getFullPoints(), shapePointColor);
@@ -520,6 +526,11 @@ void testPipeline(
     builder.drawShape(true, shape.getFullPoints(), shapeColor);
     builder.drawPoints(shape.getFullPoints(), shapePointColor);
     builder.save("im-060-internal-medial-axis.png");
+  }
+
+  if(externalAxis.size()==0 && internalAxis.size()==0) {
+    std::cout << "No axis !!!!! Hint : Reduce the prunning threshold" << std::endl;
+    return;
   }
 
   ChordsGenerator chordsGen(
@@ -558,6 +569,8 @@ void testPipeline(
   meshGen.compute();
   std::vector<glm::vec3> meshVertices = meshGen.getVertices();
   std::vector<glm::uvec3> meshFaces = meshGen.getFaces();
+  std::cout << "Vertices : " << meshVertices.size() << std::endl;
+  std::cout << "Faces : " << meshFaces.size() << std::endl;
   computeSkeletonAndMeshes(
     meshVertices, meshFaces,
     shape,

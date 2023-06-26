@@ -20,32 +20,34 @@ void SkeletonGenerator::compute() {
     // the skeleton
     std::vector<std::pair<glm::vec2, unsigned>> junctionPoints;
 
-    // The last joint of each axis is in a junction triangle
-    for(auto & skelAxis : externalAxis) {
-        if(skelAxis.size() >= 2) {
-            // We link the junction triangle point to the reste of the axis
-            // in the skeleton
+    if(externalAxis.size() >= 2) {
+        // The last joint of each axis is in a junction triangle
+        for(auto & skelAxis : externalAxis) {
+            if(skelAxis.size() >= 2) {
+                // We link the junction triangle point to the reste of the axis
+                // in the skeleton
 
-            const glm::vec2 junctionTrianglePoint = skelAxis[skelAxis.size()-1];
-            const glm::vec2 junctionTriangleLinkPoint = skelAxis[skelAxis.size()-2];
-            unsigned junctionTriangleJointId = rigging.addJoint(
-                glm::vec3(junctionTrianglePoint, 0.0f));
-            unsigned linkPointJointId = rigging.addJoint(
-                glm::vec3(junctionTriangleLinkPoint, 0.0f));
+                const glm::vec2 junctionTrianglePoint = skelAxis[skelAxis.size()-1];
+                const glm::vec2 junctionTriangleLinkPoint = skelAxis[skelAxis.size()-2];
+                unsigned junctionTriangleJointId = rigging.addJoint(
+                    glm::vec3(junctionTrianglePoint, 0.0f));
+                unsigned linkPointJointId = rigging.addJoint(
+                    glm::vec3(junctionTriangleLinkPoint, 0.0f));
 
-            std::vector<glm::vec2> jAxis;
-            jAxis.push_back(junctionTrianglePoint);
-            jAxis.push_back(junctionTriangleLinkPoint);
-            junctionAxisSkeleton.push_back(jAxis);
+                std::vector<glm::vec2> jAxis;
+                jAxis.push_back(junctionTrianglePoint);
+                jAxis.push_back(junctionTriangleLinkPoint);
+                junctionAxisSkeleton.push_back(jAxis);
 
-            rigging.addBone(junctionTriangleJointId, linkPointJointId);
+                rigging.addBone(junctionTriangleJointId, linkPointJointId);
 
-            junctionPoints.push_back({junctionTrianglePoint, junctionTriangleJointId});
+                junctionPoints.push_back({junctionTrianglePoint, junctionTriangleJointId});
+            }
         }
-    }
-    // We remove that last joint
-    for(auto & skelAxis : externalAxis) {
-        skelAxis.erase(skelAxis.begin()+skelAxis.size()-1);
+        // We remove that last joint
+        for(auto & skelAxis : externalAxis) {
+            skelAxis.erase(skelAxis.begin()+skelAxis.size()-1);
+        }
     }
 
     // Douglas-Peucker Algorithm for external axis
