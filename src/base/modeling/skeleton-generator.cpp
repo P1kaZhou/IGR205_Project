@@ -47,11 +47,12 @@ void SkeletonGenerator::compute() {
         // We remove that last joint
         for(auto & skelAxis : externalAxis) {
             skelAxis.erase(skelAxis.begin()+skelAxis.size()-1);
+            skelAxis.erase(skelAxis.begin());
         }
     }
 
     // Douglas-Peucker Algorithm for external axis
-    CDP cdp(points, externalAxis, chords, cdpThreshold);
+    CDP cdp(points, externalAxis, chords, cdpThreshold, cdpCylindricalImp, cdpDistanceImp);
     cdp.compute();
     externalAxisSkeleton = cdp.getSkeleton();
 

@@ -22,28 +22,52 @@ class MyFace    : public Face< MyUsedTypes, face::Mark,  face::VertexRef, face::
 class MyEdge    : public Edge<MyUsedTypes>{};
 class MyMesh    : public tri::TriMesh< vector<MyVertex>, vector<MyFace> , vector<MyEdge>  > {};
 
-inline void remeshing(
+inline MyMesh * createMeshforVCG(
   std::vector<glm::vec3> & vertices,
   std::vector<glm::uvec3> & faces
 ) {
-  MyMesh original, toremesh;
-  original.vert.reserve(vertices.size());
-  original.face.reserve(faces.size());
+  MyMesh * mesh = new MyMesh();
+  mesh->vert.reserve(vertices.size());
+  mesh->face.reserve(faces.size());
   for(int i=0; i<vertices.size(); i++) {
     auto & v = vertices[i];
     tri::Allocator<MyMesh>::AddVertex(
-      original,
+      *mesh,
       typename MyMesh::CoordType(v.x,v.y,v.z)
     );
   }
   for(auto & f : faces) {
     vcg::tri::Allocator<MyMesh>::AddFace(
-      original,
-      &original.vert[ f.x ],
-      &original.vert[ f.y ],
-      &original.vert[ f.z ]
+      *mesh,
+      &mesh->vert[ f.x ],
+      &mesh->vert[ f.y ],
+      &mesh->vert[ f.z ]
     );
   }
+  return mesh;
+}
+
+inline void extractFromVCGMesh(
+  MyMesh & toremesh,
+  std::vector<glm::vec3> & vertices,
+  std::vector<glm::uvec3> & faces
+) {
+  vertices.reserve(toremesh.vert.size());
+  faces.reserve(toremesh.face.size());
+  for(auto & mv : toremesh.vert) {
+    vertices.push_back({mv.P().X(), mv.P().Y(), mv.P().Z()});
+  }
+  for(auto & mf : toremesh.face) {
+    faces.push_back({mf.V(0)->VFi(), mf.V(1)->VFi(), mf.V(2)->VFi()});
+  }
+}
+
+inline void performRemeshing(
+  std::vector<glm::vec3> & vertices,
+  std::vector<glm::uvec3> & faces
+) {
+  MyMesh * original = createMeshforVCG(vertices, faces);
+  MyMesh toremesh;
 
   vertices.clear();
   faces.clear();
@@ -57,15 +81,15 @@ inline void remeshing(
 	// vcg::tri::Allocator<MyMesh>::CompactEveryVector(original);
 
   // tri::UpdateNormal<MyMesh>::PerVertexNormalizedPerFaceNormalized(original);
-	tri::UpdateBounding<MyMesh>::Box(original);
+	tri::UpdateBounding<MyMesh>::Box(*original);
 
-  vcg::tri::Append<MyMesh,MyMesh>::MeshCopy(toremesh,original);
+  vcg::tri::Append<MyMesh,MyMesh>::MeshCopy(toremesh,*original);
 	tri::UpdateNormal<MyMesh>::PerVertexNormalizedPerFaceNormalized(toremesh);
 	tri::UpdateBounding<MyMesh>::Box(toremesh);
 
   tri::UpdateTopology<MyMesh>::FaceFace(toremesh);
-	float lengthThr = targetLenPerc*(original.bbox.Diag()/100.f);
-	float maxSurfDist = maxSurfDistPerc*(original.bbox.Diag()/100.f);
+	float lengthThr = targetLenPerc*(original->bbox.Diag()/100.f);
+	float maxSurfDist = maxSurfDistPerc*(original->bbox.Diag()/100.f);
 
   vcg::tri::IsotropicRemeshing<MyMesh>::Params params;
 	params.SetTargetLen(lengthThr);
@@ -84,16 +108,32 @@ inline void remeshing(
 	params.cleanFlag = true;
 	params.userSelectedCreases = false;
 
-  vcg::tri::IsotropicRemeshing<MyMesh>::Do(toremesh, original, params);
+  vcg::tri::IsotropicRemeshing<MyMesh>::Do(toremesh, *original, params);
 
-  vertices.reserve(toremesh.vert.size());
-  faces.reserve(toremesh.face.size());
-  for(auto & mv : toremesh.vert) {
-    vertices.push_back({mv.P().X(), mv.P().Y(), mv.P().Z()});
+  extractFromVCGMesh(toremesh, vertices, faces);
+}
+
+inline void performSmoothing(
+  std::vector<glm::vec3> & vertices,
+  std::vector<glm::uvec3> & faces,
+  int steps=3
+) {
+  std::cout << "Start mesh smoothing" << std::endl;
+  showVec(vertices[0], "V[0]");
+  MyMesh * m = createMeshforVCG(vertices, faces);
+
+  tri::UpdateTopology<MyMesh>::VertexFace(*m);
+
+  for(int i=0;i<steps;++i)
+  {
+    tri::UpdateNormal<MyMesh>::PerFaceNormalized(*m);
+    tri::Smooth<MyMesh>::VertexCoordPasoDoble(
+      *m, 3
+    );
   }
-  for(auto & mf : toremesh.face) {
-    faces.push_back({mf.V(0)->VFi(), mf.V(1)->VFi(), mf.V(2)->VFi()});
-  }
+
+  extractFromVCGMesh(*m, vertices, faces);
+  std::cout << "End mesh smoothing" << std::endl;
 }
 
 #endif

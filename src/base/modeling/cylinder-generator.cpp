@@ -109,12 +109,12 @@ void CylinderGenerator::compute(unsigned circleSampleCount) {
     }
 
     // Close the start of the cylinder.
-    glm::vec3 center;
+    glm::vec3 center(0);
     for(unsigned circlePointIndex=0; circlePointIndex<=circleSampleCount; circlePointIndex++) {
         unsigned indexInCicle_curr_circle = circlePointIndex%circleSampleCount;
         center += genVertexPos[indexInCicle_curr_circle];
     }
-    center *= 1.0f/circleSampleCount;
+    center = center * (1.0f/(circleSampleCount+1));
     genVertexPos.push_back(center);
     unsigned centerIndex = genVertexPos.size()-1;
     for(unsigned circlePointIndex=0; circlePointIndex<=circleSampleCount; circlePointIndex++) {

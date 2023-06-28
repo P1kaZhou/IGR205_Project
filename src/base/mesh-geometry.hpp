@@ -13,8 +13,8 @@ public:
     MeshGeometry() {}
 
     MeshGeometry(
-        std::vector<glm::vec3> & vertexPositions,
-        std::vector<glm::uvec3> & faces
+        const std::vector<glm::vec3> & vertexPositions,
+        const std::vector<glm::uvec3> & faces
     ): vertexPositions(vertexPositions), faces(faces) {
         boundingBox = Geometry::BoundingBox::computeBoundingBox(vertexPositions);
         recomputeVertexNormals();

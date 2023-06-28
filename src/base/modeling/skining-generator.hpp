@@ -9,8 +9,8 @@ class SkiningGenerator {
 public:
     SkiningGenerator(
         Rigging & rigging,
-        std::vector<glm::vec3> & vertices,
-        std::vector<glm::uvec3> & faces
+        const std::vector<glm::vec3> & vertices,
+        const std::vector<glm::uvec3> & faces
     ): rigging(rigging), vertices(vertices), faces(faces) {
         rigging.initSkinning(vertices.size());
     }
@@ -20,8 +20,8 @@ public:
 private:
     Rigging & rigging;
 
-    std::vector<glm::vec3> & vertices;
-    std::vector<glm::uvec3> & faces;
+    const std::vector<glm::vec3> & vertices;
+    const std::vector<glm::uvec3> & faces;
 
     const int findVertexClosestVisibleBoneIndex(
         const glm::vec3 & vertex

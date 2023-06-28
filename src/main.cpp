@@ -266,8 +266,8 @@ ControllerMode controllerMode = ControllerMode::CAM;
 
 bool drawing_render = true;
 
-int im_resolution_w = 200;
-int im_resolution_h = 200;
+int im_resolution_w = 300;
+int im_resolution_h = 300;
 
 glm::vec3 chordColor = {0, 200, 0};
 glm::vec3 axisColor = {0, 200, 200};
@@ -299,11 +299,11 @@ bool show_skeleton = true;
 bool show_mesh = true;
 bool show_merged_mesh = true;
 
-float cdp_threshold = 0.5;
+float cdp_threshold = 0.3;
 float importanceCylindricalError = 1.0f;
 float importanceDistanceError = 1.0f;
 
-float pruning__threshold = 1.0f;
+float pruning__threshold = 0.5f;
 
 int ma_prun_depth = 3;
 int ma_prun_count = 3;
@@ -317,9 +317,12 @@ int smooth_mask_size = 2;
 int bones_count = 0;
 int focus_bone_index = 0;
 
+char textureFilename[2048];
+bool useTexture = false;
+
 void computeSkeletonAndMeshes(
-  std::vector<glm::vec3> & meshVertices,
-  std::vector<glm::uvec3> & meshFaces,
+  const std::vector<glm::vec3> & meshVertices,
+  const std::vector<glm::uvec3> & meshFaces,
   Shape & shape,
   std::vector<std::vector<glm::vec2>> & externalAxis,
   std::vector<std::vector<glm::vec2>> & internalAxis,
@@ -400,10 +403,21 @@ void computeSkeletonAndMeshes(
   if(generatedMesh!=nullptr) {
     renderer->removeRenderable(generatedMesh);
   }
-  generatedMesh = new Mesh(
-    new MeshGeometry(meshVertices, meshFaces),
-    MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.01f, cylinderMeshColor*0.001f, 1)
-  );
+  if(useTexture) {
+    auto geo = new MeshGeometry(meshVertices, meshFaces);
+    geo->recomputeVertexTexCoord_flat_mapping(1);
+    generatedMesh = new Mesh(
+      geo,
+      MeshMaterial::meshGetBasicTextureMaterial(textureFilename, cylinderMeshColor*0.001f)
+    );
+  }
+  else {
+    auto geo = new MeshGeometry(meshVertices, meshFaces);
+    generatedMesh = new Mesh(
+      geo,
+      MeshMaterial::meshGetSimplePhongMaterial(cylinderMeshColor*0.01f, cylinderMeshColor*0.001f, 1)
+    );
+  }
   renderer->addRenderable(generatedMesh);
   // Skeleton of te mesh
   generatedMeshSkeleton = new MeshSkeleton(rigging);
@@ -428,6 +442,8 @@ void computeSkeletonAndMeshes(
     renderer->addRenderable(m);
   }
   ((Mesh*)skeletonMesh.at(focus_bone_index))->getMaterial()->setBasicColor(skeletonMeshColorHighLight);
+
+  drawing_render = false;
 }
 
 void testPipeline(
@@ -490,12 +506,15 @@ void testPipeline(
     Geometry::DrawBuilder builder(im_resolution_w, im_resolution_h);
     builder.addExtraPoints(shape.getFullPoints());
     builder.addExtraPoints(pointsSeg);
-    if(i==0) builder.drawTriangles(shape.getFullPoints(), triangles, chordColor);
     builder.drawSegments(segments, axisColor);
     builder.drawPoints(pointsSeg, axisPointColor);
     builder.drawShape(true, shape.getFullPoints(), shapeColor);
     builder.drawPoints(shape.getFullPoints(), shapePointColor);
-    if(i==0) builder.save("im-020-raw-medial-axis.png");
+    if(i==0) {
+      builder.save("im-020-raw-medial-axis.png");
+      builder.drawTriangles(shape.getFullPoints(), triangles, chordColor);
+      builder.save("im-020-raw-medial-axis-with-triangles.png");
+    }
     if(i==1) builder.save("im-030-pruned-medial-axis.png");
     if(i==2) builder.save("im-040-pruned-smoothed-medial-axis.png");
   }
@@ -571,6 +590,9 @@ void testPipeline(
   std::vector<glm::uvec3> meshFaces = meshGen.getFaces();
   std::cout << "Vertices : " << meshVertices.size() << std::endl;
   std::cout << "Faces : " << meshFaces.size() << std::endl;
+
+  // performSmoothing(meshVertices, meshFaces, 10);
+
   computeSkeletonAndMeshes(
     meshVertices, meshFaces,
     shape,
@@ -584,6 +606,10 @@ float cameraFar = 10.0f;
 bool withFaceCull = false;
 
 glm::vec3 bone_rotation = {0.f,0.f,0.f};
+
+int index_photo = 0;
+
+char shapeFilename[2048];
 
 void renderImGui() {
   ImGuiIO& io = ImGui::GetIO(); (void)io;
@@ -614,15 +640,15 @@ void renderImGui() {
 
     // Cylindrical Douglas-Peucker threshold
     ImGui::Text("Douglas-Peucker");
-    ImGui::SliderFloat("global threshold", &cdp_threshold, 0.0f, 2.0f);
-    ImGui::SliderFloat("Cyl error weight", &importanceCylindricalError, 0.0f, 1.0f);
-    ImGui::SliderFloat("Dist error weight", &importanceDistanceError, 0.0f, 1.0f);
+    ImGui::SliderFloat("global threshold", &cdp_threshold, 0.0f, 1.0f);
+    ImGui::SliderFloat("Cyl error weight", &importanceCylindricalError, 0.0f, 5.0f);
+    ImGui::SliderFloat("Dist error weight", &importanceDistanceError, 0.0f, 5.0f);
     ImGui::Separator();
 
     ImGui::Text("Medial axis");
     // ImGui::SliderInt("prunning thresh", &ma_prun_depth, 3, 60);
     // ImGui::SliderInt("nbr of prunning", &ma_prun_count, 1, 10);
-    ImGui::SliderFloat("Pruning threshold", &pruning__threshold, 0.0f, 1.0f);
+    ImGui::SliderFloat("Pruning threshold", &pruning__threshold, 0.0f, 10.0f);
     ImGui::SliderInt("Smoothing size", &smooth_mask_size, 1, 10);
     ImGui::SliderInt("Shape sampling", &sub_sampling, 1, 50);
     ImGui::Separator();
@@ -635,7 +661,20 @@ void renderImGui() {
     ImGui::SliderInt("resolution h", &im_resolution_h, 100, 2000);
     ImGui::Separator();
 
+    ImGui::Text("Texture");
+    ImGui::InputText("Texture file", textureFilename, IM_ARRAYSIZE(textureFilename));
+    ImGui::Checkbox("Use texture", &useTexture);
+    ImGui::Separator();
+
     ImGui::Text("Pipeline");
+    ImGui::InputText("shape file", shapeFilename, IM_ARRAYSIZE(shapeFilename));
+    if (ImGui::Button("Load shape file")) {
+      drawing->clearDrawing();
+      drawing->loadShape(shapeFilename);
+    }
+    if (ImGui::Button("Save shape file")) {
+      drawing->saveShape(shapeFilename);
+    }
     if (ImGui::Button("START")) {
       std::vector<glm::vec2> points;
       for(auto p : drawing->getDrawing(drawing->drawingCount()-1)) {
@@ -743,6 +782,7 @@ void renderImGui() {
         ((Mesh*)skeletonMesh.at(i))->getMaterial()->setBasicColor(skeletonMeshColor);
       }
       ((Mesh*)skeletonMesh.at(focus_bone_index))->getMaterial()->setBasicColor(skeletonMeshColorHighLight);
+      bone_rotation = glm::vec3(0.f);
     }
     // X axis
     if(ImGui::Button("RotateX+")) {
@@ -788,6 +828,13 @@ void renderImGui() {
     }
     ImGui::Separator();
 
+    if(ImGui::Button("Photo")) {
+      if(renderer) {
+        renderer->saveCurrentImageTGA(buildIndexedString("photos/photo",index_photo,".tga"));
+        index_photo += 1;
+      }
+    }
+
     ImGui::End();
   }
 
@@ -829,11 +876,11 @@ int main(int argc, char ** argv) {
   camController = new CameraController(renderer->getCamera());
   drawing = new Drawing();
 
+  // renderer->addLight(Light::lightGetConstantCaster(
+  //   lightPos1, lightColor*0.001f, lightColor, lightColor*0.f
+  // ));
   renderer->addLight(Light::lightGetConstantCaster(
-    lightPos1, lightColor*0.001f, lightColor, lightColor*0.f
-  ));
-  renderer->addLight(Light::lightGetConstantCaster(
-    lightPos2, lightColor*0.001f, lightColor, lightColor*0.f
+    lightPos2, lightColor*0.01f, lightColor, lightColor*0.f
   ));
 
   // Mesh * plane = new Mesh(
@@ -868,6 +915,13 @@ int main(int argc, char ** argv) {
 
     if(drawing_render) {
       drawing->render2D();
+    }
+
+    if(useTexture) {
+      if(!drawing->isTextureInit) {
+        drawing->setupTexture(textureFilename);
+      }
+      drawing->renderTexture();
     }
     
     glfwPollEvents();

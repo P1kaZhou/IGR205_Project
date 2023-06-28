@@ -92,8 +92,6 @@ vec3 computeColor(
 	return (diffuse + specular + ambient) * attenuation  * spotLightAttenuation;
 }
 
-in float ttt;
-
 void main() {
 	vec3 c = vec3(0.0);
 	vec3 fragDiffuseColor = texture(diffuseMap, frag.texCoord).rgb + diffuseColor;
@@ -130,8 +128,4 @@ void main() {
 	c += basicColor;
 	c += frag.fcolor;
 	color = vec4(c, 1.0);
-
-	if(ttt>0) {
-		color = vec4(ttt, 0.0, 0.0, 1.0);
-	}
 }

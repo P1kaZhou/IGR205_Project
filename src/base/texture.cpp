@@ -43,6 +43,12 @@ void Texture2D<T>::loadFromFile() {
     int componentCount_;
     data = (T*) stbi_load(filename, &width, &height, &componentCount_, componentCount);
     componentCount = componentCount_;
+    std::cout 
+        << "Texture loaded with"
+        << " width " << width
+        << " height " << height
+        << " channels " << componentCount
+        << std::endl;
     if(data == nullptr) {
         std::cerr << "Fail loading image : " << stbi_failure_reason() << std::endl;
     }
@@ -75,6 +81,7 @@ void Texture2D<unsigned char>::call_glTexImage2D() {
         format = GL_RGBA;
         internalFormat = GL_RGBA;
     }
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(
         GL_TEXTURE_2D, 0, internalFormat, width, height, 0, 
         format, GL_UNSIGNED_BYTE, data);
@@ -112,8 +119,8 @@ void Texture2D<T>::initGPUTexture() {
     glBindTexture(GL_TEXTURE_2D, texture);
 
     // Texture coordinates clamping
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 

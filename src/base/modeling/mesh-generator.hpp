@@ -45,7 +45,9 @@ private:
   std::list<CylinderGenerator> cylinders;
 
   std::vector<glm::uvec3> createConnexionGrid(unsigned p, unsigned q);
-  std::vector<std::pair<std::list<CylinderGenerator>::iterator, bool>> getCylindersOnPoint(unsigned p);
+  std::vector<std::pair<std::list<CylinderGenerator>::iterator, bool>> getCylindersOnPoint(
+    unsigned p
+  );
 
   LimbConnexions * limbConnexions = nullptr;
 

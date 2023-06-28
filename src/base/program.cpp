@@ -15,11 +15,15 @@
 #define SHADER_FILENAME_DRAWING_WORLD_VERTEX "src/shaders/drawingWorldVertexShader.glsl"
 #define SHADER_FILENAME_DRAWING_WORLD_FRAGMENT "src/shaders/drawingWorldFragmentShader.glsl"
 
+#define SHADER_FILENAME_COVER_VERTEX "src/shaders/coverVertex.glsl"
+#define SHADER_FILENAME_COVER_FRAGMENT "src/shaders/coverFragment.glsl"
+
 Program * Program::instancePhong = nullptr;
 Program * Program::instanceShadowMap = nullptr;
 Program * Program::instanceSingleColor = nullptr;
 Program * Program::instanceDrawing = nullptr;
 Program * Program::instanceDrawingWorld = nullptr;
+Program * Program::instanceCover = nullptr;
 
 Program * Program::getInstancePhong() {
     if(instancePhong  == nullptr) {
@@ -69,6 +73,16 @@ Program * Program::getInstanceDrawingWorld() {
         instanceDrawingWorld->initProgram();
     }
     return instanceDrawingWorld;
+}
+
+Program * Program::getInstanceCover() {
+    if(instanceCover  == nullptr) {
+        instanceCover = new Program();
+        instanceCover->vertexShaderFilename = SHADER_FILENAME_COVER_VERTEX;
+        instanceCover->fragmentShaderFilename = SHADER_FILENAME_COVER_FRAGMENT;
+        instanceCover->initProgram();
+    }
+    return instanceCover;
 }
 
 void Program::subscribe() {

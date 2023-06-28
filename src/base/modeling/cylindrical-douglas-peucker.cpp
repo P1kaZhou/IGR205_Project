@@ -5,13 +5,15 @@ void CDP::compute() {
     for(auto ax : axis) {
         auto skel = std::vector<glm::vec2>();
 
-        skel.push_back(*ax.begin());
-        computeSingleAxisSkeleton(
-            ax, ax.begin(), ax.begin()+ax.size()-1, skel
-        );
-        skel.push_back(*(ax.begin()+ax.size()-1));
+        if(ax.size()>0) {
+            skel.push_back(*ax.begin());
+            computeSingleAxisSkeleton(
+                ax, ax.begin(), ax.begin()+ax.size()-1, skel
+            );
+            skel.push_back(*(ax.begin()+ax.size()-1));
 
-        skeleton.push_back(skel);
+            skeleton.push_back(skel);
+        }
     }
 }
 

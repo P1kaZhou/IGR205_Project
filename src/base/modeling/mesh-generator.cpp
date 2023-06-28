@@ -104,8 +104,8 @@ static int findConnectedStopPoint(
   while(
     it==stopPoints.end()
   ) {
-    i += step;
-    it = find(stopPoints, i%points.size());
+    i = (i+step)%points.size();
+    it = find(stopPoints, i);
   }
   cyl = it->second;
   return i;
@@ -133,22 +133,24 @@ void MeshGenerator::compute() {
   // cylinders.reserve(externalAxis.size());
   for(unsigned i=0; i<externalAxis.size(); i++) {
     auto axis = externalAxis[i];
-    cylinders.emplace_back(axis, points, chords, axisPointToChord);
-    cylinders.back().compute(cylinderResolution);
+    if(axis.size()>1) {
+      cylinders.emplace_back(axis, points, chords, axisPointToChord);
+      cylinders.back().compute(cylinderResolution);
 
-    for(auto f : cylinders.back().getFaces()) {
-      faces.push_back({
-        f.x + vertices.size(),
-        f.y + vertices.size(),
-        f.z + vertices.size()
-      });
+      for(auto f : cylinders.back().getFaces()) {
+        faces.push_back({
+          f.x + vertices.size(),
+          f.y + vertices.size(),
+          f.z + vertices.size()
+        });
+      }
+      cylinders.back().offset = vertices.size();
+      vertices.insert(
+        vertices.end(),
+        cylinders.back().getVertexPos().begin(),
+        cylinders.back().getVertexPos().end()
+      );
     }
-    cylinders.back().offset = vertices.size();
-    vertices.insert(
-      vertices.end(),
-      cylinders.back().getVertexPos().begin(),
-      cylinders.back().getVertexPos().end()
-    );
   }
 
 // We find the limb last chord connexions -------------------------------------
@@ -340,11 +342,17 @@ std::vector<std::pair<std::list<CylinderGenerator>::iterator, bool>> MeshGenerat
   std::vector<std::pair<std::list<CylinderGenerator>::iterator, bool>> res;
 
   auto pConns = limbConnexions->getBothWayConnexion(p);
+  std::cout << "Connexions for " << p << std::endl;
+  for(auto c : pConns) {
+    std::cout << c << "  ";
+  }
+  std::cout << std::endl;
   for(auto q : pConns) {
     auto qIt = limbConnexions->pointToCylinders.find(q);
     if(qIt != limbConnexions->pointToCylinders.end()) {
+      auto cyl = std::next(cylinders.begin(), qIt->second.first);
       res.push_back({
-        std::next(cylinders.begin(), qIt->second.first),
+        cyl,
         qIt->second.second
       });
     }
@@ -362,10 +370,116 @@ std::vector<std::pair<std::list<CylinderGenerator>::iterator, bool>> MeshGenerat
   return res;
 }
 
+static glm::vec2 findClosest(glm::vec3 & p, const std::vector<glm::vec2> & s) {
+  float min = FLT_MAX;
+  glm::vec2 closest = s[0];
+  for(auto & v : s) {
+    float d = glm::distance(glm::vec2(p), v);
+    if(min > d) {
+      min = d;
+      closest = v;
+    }
+  }
+  return closest;
+}
+
+// static void connectSidesSameOrder(
+//   std::vector<unsigned> & side1, std::vector<unsigned> & side2,
+//   unsigned side1Offset, unsigned side2Offset,
+//   std::vector<glm::uvec3> & faces,
+//   std::vector<glm::vec3> & vertices,
+//   const std::vector<glm::vec2> & points
+// ) {
+//   unsigned resolution = 30;
+//   std::vector<std::vector<unsigned>> connectingLines;
+//   for(unsigned i=0; i<side1.size()-1; i++) {
+//     std::vector<unsigned> samples;
+//     unsigned s1Sample = side1[i]+side1Offset;
+//     unsigned s2Sample = side2[i]+side2Offset;
+
+//     float d = glm::distance(vertices[s1Sample], vertices[s2Sample]);
+//     samples.push_back(s1Sample);
+//     for(unsigned k=1;k<=resolution;k++) {
+//       glm::vec3 displace = k*(d/(resolution+1))*(vertices[s2Sample]-vertices[s1Sample]);
+//       glm::vec3 p = displace + vertices[s1Sample];
+//       glm::vec2 p2d = findClosest(p, points);
+//       p = glm::vec3(p2d.x, p2d.y, p.z);
+//       vertices.push_back(p);
+//       samples.push_back(vertices.size()-1);
+//     }
+//     samples.push_back(s2Sample);
+
+//     connectingLines.push_back(samples);
+//   }
+
+//   for(unsigned i=1; i<connectingLines.size(); i++) {
+//     for(unsigned v=0; v<resolution+2-1; v++) {
+//       faces.push_back({
+//         connectingLines[i][v],
+//         connectingLines[i-1][v+1],
+//         connectingLines[i-1][v]
+//       });
+//       faces.push_back({
+//         connectingLines[i][v],
+//         connectingLines[i][v+1],
+//         connectingLines[i-1][v+1]
+//       });
+//     }
+//   }
+// }
+
+// static void connectSidesNotSameOrder(
+//   std::vector<unsigned> & side1, std::vector<unsigned> & side2,
+//   unsigned side1Offset, unsigned side2Offset,
+//   std::vector<glm::uvec3> & faces,
+//   std::vector<glm::vec3> & vertices,
+//   const std::vector<glm::vec2> & points
+// ) {
+//   unsigned resolution = 30;
+//   int N = side2.size()-1;
+//   std::vector<std::vector<unsigned>> connectingLines;
+//   for(unsigned i=0; i<side1.size()-1; i++) {
+//     std::vector<unsigned> samples;
+//     unsigned s1Sample = side1[i]+side1Offset;
+//     unsigned s2Sample = side2[N-i]+side2Offset;
+
+//     float d = glm::distance(vertices[s1Sample], vertices[s2Sample]);
+//     samples.push_back(s1Sample);
+//     for(unsigned k=1;k<=resolution;k++) {
+//       glm::vec3 displace = k*(d/(resolution+1))*(vertices[s2Sample]-vertices[s1Sample]);
+//       glm::vec3 p = displace + vertices[s1Sample];
+//       glm::vec2 p2d = findClosest(p, points);
+//       p = glm::vec3(p2d.x, p2d.y, p.z);
+//       vertices.push_back(p);
+//       samples.push_back(vertices.size()-1);
+//     }
+//     samples.push_back(s2Sample);
+
+//     connectingLines.push_back(samples);
+//   }
+
+//   for(unsigned i=1; i<connectingLines.size(); i++) {
+//     for(unsigned v=0; v<resolution+2-1; v++) {
+//       faces.push_back({
+//         connectingLines[i][v],
+//         connectingLines[i-1][v+1],
+//         connectingLines[i-1][v]
+//       });
+//       faces.push_back({
+//         connectingLines[i][v],
+//         connectingLines[i][v+1],
+//         connectingLines[i-1][v+1]
+//       });
+//     }
+//   }
+// }
+
 static void connectSidesSameOrder(
   std::vector<unsigned> & side1, std::vector<unsigned> & side2,
   unsigned side1Offset, unsigned side2Offset,
-  std::vector<glm::uvec3> & faces
+  std::vector<glm::uvec3> & faces,
+  std::vector<glm::vec3> & vertices,
+  const std::vector<glm::vec2> & points
 ) {
   for(unsigned i=0; i<side1.size()-1; i++) {
     if(i < side2.size()-1) {
@@ -382,7 +496,9 @@ static void connectSidesSameOrder(
 static void connectSidesNotSameOrder(
   std::vector<unsigned> & side1, std::vector<unsigned> & side2,
   unsigned side1Offset, unsigned side2Offset,
-  std::vector<glm::uvec3> & faces
+  std::vector<glm::uvec3> & faces,
+  std::vector<glm::vec3> & vertices,
+  const std::vector<glm::vec2> & points
 ) {
   int N = side2.size()-1;
   for(unsigned i=0; i<side1.size()-1; i++) {
@@ -399,7 +515,9 @@ static void connectSidesNotSameOrder(
 
 static std::vector<glm::uvec3> connexionFaces(
   const std::pair<std::list<CylinderGenerator>::iterator, bool> & connCyl1,
-  const std::pair<std::list<CylinderGenerator>::iterator, bool> & connCyl2
+  const std::pair<std::list<CylinderGenerator>::iterator, bool> & connCyl2,
+  std::vector<glm::vec3> & vertices,
+  const std::vector<glm::vec2> & points
 ) {
   std::vector<unsigned> side1;
   std::vector<unsigned> side2;
@@ -430,19 +548,19 @@ static std::vector<glm::uvec3> connexionFaces(
     // Same order
     std::cout << "Same order" << std::endl;
     if(side1.size() <= side2.size()) {
-      connectSidesSameOrder(side1, side2, side1Offset, side2Offset, faces);
+      connectSidesSameOrder(side1, side2, side1Offset, side2Offset, faces, vertices, points);
     }
     else {
-      connectSidesSameOrder(side2, side1, side2Offset, side1Offset, faces);
+      connectSidesSameOrder(side2, side1, side2Offset, side1Offset, faces, vertices, points);
     }
   }
   else {
     std::cout << "Not same order" << std::endl;
     if(side1.size() <= side2.size()) {
-      connectSidesNotSameOrder(side1, side2, side1Offset, side2Offset, faces);
+      connectSidesNotSameOrder(side1, side2, side1Offset, side2Offset, faces, vertices, points);
     }
     else {
-      connectSidesNotSameOrder(side2, side1, side2Offset, side1Offset, faces);
+      connectSidesNotSameOrder(side2, side1, side2Offset, side1Offset, faces, vertices, points);
     }
   }
 
@@ -461,7 +579,7 @@ std::vector<glm::uvec3> MeshGenerator::createConnexionGrid(unsigned p, unsigned 
       assert(false);
     }
     else if(connCyls.size()==2) {
-      return connexionFaces(connCyls.at(0), connCyls.at(1));
+      return connexionFaces(connCyls.at(0), connCyls.at(1), vertices, points);
     }
   }
   else {
@@ -474,11 +592,25 @@ std::vector<glm::uvec3> MeshGenerator::createConnexionGrid(unsigned p, unsigned 
     else if(connCylsP.size()>1 || connCylsQ.size()>1) {
       std::cerr << "Two single points with two or more cylinders " 
       << connCylsP.size() << " and " << connCylsQ.size() << std::endl;
-      assert(false);
-      // return connexionFaces(connCylsP.at(connCylsP.size()-1), connCylsQ.at(connCylsQ.size()-1));
+      for(auto cc : connCylsP) {
+        std::cout 
+          << "a=" << cc.first->getLastChord().a
+          << " b=" << cc.first->getLastChord().b
+          << " isA=" << ((cc.second)?"Oui":"Non")
+          << std::endl;
+      }
+      for(auto cc : connCylsQ) {
+        std::cout 
+          << "a=" << cc.first->getLastChord().a
+          << " b=" << cc.first->getLastChord().b
+          << " isA=" << ((cc.second)?"Oui":"Non")
+          << std::endl;
+      }
+      // assert(false);
+      return connexionFaces(connCylsP.at(connCylsP.size()-1), connCylsQ.at(connCylsQ.size()-1), vertices, points);
     }
     else {
-      return connexionFaces(connCylsP.at(0), connCylsQ.at(0));
+      return connexionFaces(connCylsP.at(0), connCylsQ.at(0), vertices, points);
     }
   }
 

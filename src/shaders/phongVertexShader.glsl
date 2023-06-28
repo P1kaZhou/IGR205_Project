@@ -28,15 +28,11 @@ uniform uint textureElemSize;
 layout(binding=4) uniform sampler2D vertexTransformCoef;
 uniform bool hasBones;
 
-out float ttt;
-
 void main() {
     frag.fcolor = vColor;
 
     vec4 pos = vec4(vPosition, 1.0);
     vec4 normal = vec4(vNormal, 0.0);
-
-    ttt = 0;
     
     if(hasBones) {
         int center = int(textureElemSize/2);
@@ -54,12 +50,20 @@ void main() {
                 pos = pos + vec4(bones[b].A, 0.0);
                 
                 Bone parent = bones[b];
-                while(parent.parentIndexPlusOne > 0) {
+                vec4 oldPos = pos;
+                while(
+                    parent.parentIndexPlusOne > 0 &&
+                    parent.parentIndexPlusOne <= bonesCount &&
+                    parent.parentIndexPlusOne-1!=b
+                ) {
                     parent = bones[parent.parentIndexPlusOne-1];
 
                     pos = pos - vec4(parent.A, 0.0);
                     pos = parent.rotationMat * pos;
                     pos = pos + vec4(parent.A, 0.0);
+                }
+                if(length(pos)==0) {
+                    pos = oldPos;
                 }
             }
 

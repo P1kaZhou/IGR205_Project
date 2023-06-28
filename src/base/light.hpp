@@ -29,7 +29,7 @@ protected:
     float lightCamNear = 0.1f;
     float lightCamFar = 15.0f;
     glm::vec3 lightCamUp = {1.0f, 0.0f, 0.0f};
-    float lightFovAngleDegree = 120.0f;
+    float lightFovAngleDegree = 180.0f;
     glm::vec3 lightLookAt = {0.0f, 0.0f, 0.0f};
 
     void buildUniformNames(int indexInLightsBuffer);

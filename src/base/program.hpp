@@ -17,6 +17,7 @@ protected:
     static Program * instanceSingleColor;
     static Program * instanceDrawing;
     static Program * instanceDrawingWorld;
+    static Program * instanceCover;
 
     GLuint program;
     unsigned int programUserCount;
@@ -34,6 +35,7 @@ public:
     static Program * getInstanceSingleColor();
     static Program * getInstanceDrawing();
     static Program * getInstanceDrawingWorld();
+    static Program * getInstanceCover();
     
     /*Subscribe to the program. This compile the program if it was previously delete from the GPU.*/
     void subscribe();
