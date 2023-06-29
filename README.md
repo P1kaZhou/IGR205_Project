@@ -20,7 +20,7 @@ From the projet directory:
 ## Usage
 When running the program, two windows will appear. One with the space to draw (It's white). Another with the different parameters.
 
-#### Pipeline Parameters
+### Pipeline Parameters
 
 The pipeline parameters are in three sections in the parameters window: **Douglas-Peucker**, **Medial axis** and **3D generation**.
 
@@ -37,7 +37,7 @@ The pipeline parameters are in three sections in the parameters window: **Dougla
 **3D generation**
 - **Cylinder sampling** the number of vertices in a section of each cylinder of the mesh.
 
-#### Buttons and Utilities
+### Buttons and Utilities
 
 **Draw the shape**
 You can draw by left clicking on the white space window.
