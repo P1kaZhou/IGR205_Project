@@ -20,7 +20,25 @@ From the projet directory:
 ## Usage
 When running the program, two windows will appear. One with the space to draw (It's white). Another with the different parameters.
 
-#### Draw your own shape
+#### Pipeline Parameters
+
+The pipeline parameters are in three sections in the parameters window: **Douglas-Peucker**, **Medial axis** and **3D generation**.
+
+**Douglas-Peucker :**
+- **global threshold** is the threshold for the Cylindrical Douglas-Peucker.
+- **Cyl error weight** is the weight of the cylindrical distance.
+- **Dist error weight** is the weight of the Douglas-Peucker distance.
+
+**Medial axis**
+- **Pruning threshold** is the threshold for the medial axis pruning threshold when removnig insignificant branches from the medial axis.
+- **Smoothing size** the window size for the laplacian smoothing applied to the medial axis. The bigger the smoother are the medial axis.
+- **Shape sampling** the number of point that we skip in the shape for some steps of the pipeline.
+
+**3D generation**
+- **Cylinder sampling** the number of vertices in a section of each cylinder of the mesh.
+
+#### Buttons and Utilities
+
 **Draw the shape**
 You can draw by left clicking on the white space window.
 
@@ -38,7 +56,23 @@ In the text input **shape file** write the name of the shape that you want to lo
 Once you load the shape, you can click **START** to generate its 3D mesh.
 
 **Display a texture**
-To help you draw, you might want to havean image in the drawing space. To do that, write the image file name in the **Texture file** text input then click on **Use texture**. Once the drawing is finished click again on **Use texture**.
+To help you draw, you might want to havean image in the drawing space. To do that, write the image file name in the **Texture file** text input then check the **Use texture** option. Once the drawing is finished uncheck the **Use texture** option to hide the texture.
+
+**Skeleton movement**
+Once the mesh and its skeleton are generated, the section *Skeleton* on the parameters window will show the number of bones and a slider allowing you to select a bone. Once you select the bone you want to move, you can make rotations around its ivot joint using the buttons : **RotatioX+**, **RotatioX-**, **RotatioY+**, **RotatioY-**, **RotatioZ+** and **RotatioZ-**.
+
+**Hide/show skeleton, mesh and shape**
+Check/uncheck the **Show skeleton**, **Show mesh** and **Display drawing** options.
+
+**Erase**
+You can erase the current 2D shape by  click **CLEAR DRAWING**.
+You can also erase the mesh and its skeleton by clicking **Clear mesh**.
+
+**Take a photo**
+click on the button **Photo** to take a photo of want you see on the screen (your mesh and its skeleton). The image is in the TGA format and save as *photoi.tga* (*photo0.tga*, *photo1.tga*, etc ...).
+
+**Steps results screen shots**
+The Results of the different steps of the pipeline are saved in images in the local directory. You can change their resolution with the sliders **resolution w** and **resolution h**.
 
 ## Libraries used
 * [Glad](https://github.com/Dav1dde/glad) for OpenGL calls. (MIT Licence)
